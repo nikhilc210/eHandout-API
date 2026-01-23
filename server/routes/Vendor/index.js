@@ -12,6 +12,7 @@ import {
   verifyStoreVendor,
   resendStoreVendorOtp,
   storeVendorAuth,
+  publishEbook,
 } from "../../controllers/Store/Vendor/index.js";
 import { verifyToken } from "../../middleware/Tokens/index.js";
 
@@ -28,5 +29,6 @@ router.post("/vendoreBookCover", verifyToken, createeBookCover);
 router.put("/vendoreBookCover", verifyToken, updateeBookCover);
 router.get("/vendoreBookCover", verifyToken, getAlleBookCover);
 router.get("/vendoreBookCover/:coverId", verifyToken, geteBookCoverInformation);
+router.post("/publishEbook", verifyToken, publishEbook);
 
 export default router;

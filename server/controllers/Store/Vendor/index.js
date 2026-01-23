@@ -7,6 +7,7 @@ import {
   StoreVendorInformation,
   StoreVendorBankInformation,
   StoreVendoreBookCover,
+  VendorEbook,
 } from "../../../models/Store/Vendor/index.js";
 export const registerStoreVendor = async (req, res) => {
   console.log("Request body:", req.body); // <--- add this
@@ -95,7 +96,7 @@ export const verifyStoreVendor = async (req, res) => {
     const token = jwt.sign(
       { id: vendor._id, email: vendor.email },
       process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN || "7d" }
+      { expiresIn: process.env.JWT_EXPIRES_IN || "7d" },
     );
 
     return res.status(200).json({
@@ -386,7 +387,7 @@ export const updateeBookCover = async (req, res) => {
     const cover = await StoreVendoreBookCover.findByIdAndUpdate(
       coverId,
       { coverName, isLocked, coverURL },
-      { new: true }
+      { new: true },
     );
 
     if (!cover)
@@ -448,6 +449,251 @@ export const geteBookCoverInformation = async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching eBook cover:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error: " + error.message,
+    });
+  }
+};
+
+// Helper function to parse price strings with commas
+const parsePrice = (priceString) => {
+  if (typeof priceString === "number") return priceString;
+  if (typeof priceString === "string") {
+    return parseFloat(priceString.replace(/,/g, ""));
+  }
+  return 0;
+};
+
+// Helper function to validate ISBN format
+const isValidISBN = (isbn) => {
+  // Remove hyphens and spaces
+  const cleanISBN = isbn.replace(/[-\s]/g, "");
+
+  // ISBN-10 or ISBN-13
+  if (cleanISBN.length === 10) {
+    // ISBN-10 validation
+    const regex = /^[0-9]{9}[0-9X]$/;
+    return regex.test(cleanISBN);
+  } else if (cleanISBN.length === 13) {
+    // ISBN-13 validation
+    const regex = /^[0-9]{13}$/;
+    return regex.test(cleanISBN);
+  }
+  return false;
+};
+
+export const publishEbook = async (req, res) => {
+  try {
+    const { id: vendorId } = req.vendor;
+
+    // Extract all fields from request body
+    const {
+      academicDiscipline,
+      ebookTitle,
+      author,
+      publisher,
+      publishedDate,
+      edition,
+      series,
+      isbn,
+      language,
+      synopsis,
+      aboutAuthor,
+      academicRecommendation,
+      publicDomain,
+      ebookCover,
+      ebookContent,
+      salePrice,
+      makeAvailableForBorrow,
+      borrowFee,
+      borrowPeriod,
+      legalAuthorization,
+    } = req.body;
+
+    // Validate required fields
+    if (
+      !academicDiscipline ||
+      !ebookTitle ||
+      !author ||
+      !publisher ||
+      !publishedDate ||
+      !isbn ||
+      !language ||
+      !synopsis ||
+      !aboutAuthor ||
+      !academicRecommendation ||
+      !publicDomain ||
+      !ebookCover ||
+      !ebookContent ||
+      salePrice === undefined ||
+      legalAuthorization === undefined
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "All required fields must be provided",
+      });
+    }
+
+    // Validate legalAuthorization
+    if (legalAuthorization !== true) {
+      return res.status(400).json({
+        success: false,
+        message: "You must accept legal authorization to publish an eBook",
+      });
+    }
+
+    // Validate academicRecommendation and publicDomain
+    if (!["yes", "no"].includes(academicRecommendation)) {
+      return res.status(400).json({
+        success: false,
+        message: 'academicRecommendation must be "yes" or "no"',
+      });
+    }
+
+    if (!["yes", "no"].includes(publicDomain)) {
+      return res.status(400).json({
+        success: false,
+        message: 'publicDomain must be "yes" or "no"',
+      });
+    }
+
+    // Validate ISBN format
+    if (!isValidISBN(isbn)) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Invalid ISBN format. Please provide a valid ISBN-10 or ISBN-13",
+      });
+    }
+
+    // Parse and validate sale price
+    const parsedSalePrice = parsePrice(salePrice);
+    if (parsedSalePrice <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Sale price must be a positive number",
+      });
+    }
+
+    // Validate borrow-related fields
+    let parsedBorrowFee = null;
+    let parsedBorrowPeriod = null;
+
+    if (makeAvailableForBorrow === true) {
+      if (!borrowFee || !borrowPeriod) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "borrowFee and borrowPeriod are required when makeAvailableForBorrow is true",
+        });
+      }
+
+      parsedBorrowFee = parsePrice(borrowFee);
+      if (parsedBorrowFee <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Borrow fee must be a positive number",
+        });
+      }
+
+      parsedBorrowPeriod = parseInt(borrowPeriod);
+      if (!Number.isInteger(parsedBorrowPeriod) || parsedBorrowPeriod <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Borrow period must be a positive integer (number of days)",
+        });
+      }
+    }
+
+    // Check if vendor has completed required information
+    const vendorInfo = await StoreVendorInformation.findOne({ vendorId });
+    if (!vendorInfo) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Please complete your Vendor Information before publishing an eBook",
+      });
+    }
+
+    const vendorBankInfo = await StoreVendorBankInformation.findOne({
+      vendorId,
+    });
+    if (!vendorBankInfo) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Please complete your Bank Information before publishing an eBook",
+      });
+    }
+
+    // Verify that the cover exists and belongs to this vendor
+    const cover = await StoreVendoreBookCover.findOne({
+      _id: ebookCover,
+      vendorId,
+    });
+    if (!cover) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid eBook cover ID or cover does not belong to you",
+      });
+    }
+
+    // Check if cover is locked (assuming locked covers are ready for use)
+    if (!cover.isLocked) {
+      return res.status(400).json({
+        success: false,
+        message: "Please lock the eBook cover before publishing",
+      });
+    }
+
+    // Generate unique eBook ID (ENG + 12 random numbers)
+    const ebookId = generateIds("ENG", 12, false);
+
+    // Create the eBook
+    const newEbook = await VendorEbook.create({
+      vendorId,
+      ebookId,
+      academicDiscipline,
+      ebookTitle,
+      author,
+      publisher,
+      publishedDate,
+      edition: edition || "",
+      series: series || "",
+      isbn,
+      language,
+      synopsis,
+      aboutAuthor,
+      academicRecommendation,
+      publicDomain,
+      ebookCover,
+      ebookContent,
+      salePrice: parsedSalePrice,
+      makeAvailableForBorrow: makeAvailableForBorrow || false,
+      borrowFee: parsedBorrowFee,
+      borrowPeriod: parsedBorrowPeriod,
+      legalAuthorization,
+      status: "Pending Review",
+      dateListed: new Date(),
+    });
+
+    await newEbook.save();
+
+    // Format the date for response
+    const formattedDate = new Date().toISOString().split("T")[0];
+
+    return res.status(201).json({
+      success: true,
+      message: "eBook published successfully",
+      data: {
+        ebookId: newEbook.ebookId,
+        status: newEbook.status,
+        dateListed: formattedDate,
+      },
+    });
+  } catch (error) {
+    console.error("Error publishing eBook:", error);
     return res.status(500).json({
       success: false,
       message: "Internal server error: " + error.message,

@@ -17,7 +17,7 @@ const storeVendorSignupSchema = new mongoose.Schema(
       default: "Pending",
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 const storeVendorInformationSchema = new mongoose.Schema(
@@ -56,7 +56,7 @@ const storeVendorInformationSchema = new mongoose.Schema(
     expiryDate: { type: String, required: true },
     identityFile: { type: String, required: true },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 const storeVendorBankInformationSchema = new mongoose.Schema(
@@ -75,7 +75,7 @@ const storeVendorBankInformationSchema = new mongoose.Schema(
     routingNumber: { type: String },
     sortCode: { type: String },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 const storeVendoreBookCoverSchema = new mongoose.Schema(
@@ -86,25 +86,74 @@ const storeVendoreBookCoverSchema = new mongoose.Schema(
     isLocked: { type: Boolean, default: false },
     coverURL: { type: String, required: true },
   },
-  { timestamps: true }
+  { timestamps: true },
+);
+
+const vendorEbookSchema = new mongoose.Schema(
+  {
+    vendorId: { type: String, required: true },
+    ebookId: { type: String, required: true, unique: true },
+    academicDiscipline: { type: String, required: true },
+    ebookTitle: { type: String, required: true },
+    author: { type: String, required: true },
+    publisher: { type: String, required: true },
+    publishedDate: { type: String, required: true },
+    edition: { type: String },
+    series: { type: String },
+    isbn: { type: String, required: true },
+    language: { type: String, required: true },
+    synopsis: { type: String, required: true },
+    aboutAuthor: { type: String, required: true },
+    academicRecommendation: {
+      type: String,
+      enum: ["yes", "no"],
+      required: true,
+    },
+    publicDomain: { type: String, enum: ["yes", "no"], required: true },
+    ebookCover: { type: String, required: true }, // Cover ID
+    ebookContent: { type: String, required: true }, // Content ID
+    salePrice: { type: Number, required: true },
+    makeAvailableForBorrow: { type: Boolean, default: false },
+    borrowFee: { type: Number },
+    borrowPeriod: { type: Number }, // in days
+    legalAuthorization: { type: Boolean, required: true },
+    status: {
+      type: String,
+      enum: [
+        "Pending Review",
+        "In Review",
+        "Ready For Sale",
+        "Not Approved",
+        "Updated",
+        "Suspended",
+        "Unpublished",
+      ],
+      default: "Pending Review",
+    },
+    dateListed: { type: Date, default: Date.now },
+  },
+  { timestamps: true },
 );
 
 const StoreVendor = mongoose.model("StoreVendor", storeVendorSignupSchema);
 const StoreVendorInformation = mongoose.model(
   "StoreVendorInformation",
-  storeVendorInformationSchema
+  storeVendorInformationSchema,
 );
 const StoreVendorBankInformation = mongoose.model(
   "storeVendorBankInformation",
-  storeVendorBankInformationSchema
+  storeVendorBankInformationSchema,
 );
 const StoreVendoreBookCover = mongoose.model(
   "storeVendoreBookCover",
-  storeVendoreBookCoverSchema
+  storeVendoreBookCoverSchema,
 );
+const VendorEbook = mongoose.model("VendorEbook", vendorEbookSchema);
+
 export {
   StoreVendor,
   StoreVendorInformation,
   StoreVendorBankInformation,
   StoreVendoreBookCover,
+  VendorEbook,
 };
