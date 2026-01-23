@@ -1,0 +1,100 @@
+# ===============================
+# Dependencies
+# ===============================
+node_modules/
+.pnp/
+.pnp.js
+
+# ===============================
+# Logs
+# ===============================
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+logs/
+*.log
+
+# ===============================
+# Environment files
+# ===============================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# ===============================
+# Build outputs
+# ===============================
+dist/
+build/
+.out/
+.next/
+expo-build/
+web-build/
+
+# ===============================
+# Cache
+# ===============================
+.cache/
+.tmp/
+.temp/
+.eslintcache
+.turbo/
+
+# ===============================
+# Next.js
+# ===============================
+.next/
+out/
+
+# ===============================
+# React Native / Expo
+# ===============================
+.expo/
+.expo-shared/
+android/.gradle/
+android/app/build/
+ios/Pods/
+ios/build/
+
+# ===============================
+# Coverage
+# ===============================
+coverage/
+
+# ===============================
+# OS / Editor files
+# ===============================
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# ===============================
+# TypeScript
+# ===============================
+*.tsbuildinfo
+
+# ===============================
+# Prisma
+# ===============================
+prisma/dev.db
+prisma/dev.db-journal
+
+# ===============================
+# PM2
+# ===============================
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# ===============================
+# Misc
+# ===============================
+*.pem
+*.key
