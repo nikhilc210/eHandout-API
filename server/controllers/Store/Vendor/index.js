@@ -627,23 +627,19 @@ export const publishEbook = async (req, res) => {
       });
     }
 
-    // Verify that the cover exists and belongs to this vendor
-    const cover = await StoreVendoreBookCover.findOne({
-      _id: ebookCover,
-      vendorId,
-    });
-    if (!cover) {
+    // Validate that ebookCover and ebookContent are valid URLs
+    const urlRegex = /^https?:\/\/.+/;
+    if (!urlRegex.test(ebookCover)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid eBook cover ID or cover does not belong to you",
+        message: "ebookCover must be a valid HTTP/HTTPS URL",
       });
     }
 
-    // Check if cover is locked (assuming locked covers are ready for use)
-    if (!cover.isLocked) {
+    if (!urlRegex.test(ebookContent)) {
       return res.status(400).json({
         success: false,
-        message: "Please lock the eBook cover before publishing",
+        message: "ebookContent must be a valid HTTP/HTTPS URL",
       });
     }
 
