@@ -727,15 +727,25 @@ export const publishEbook = async (req, res) => {
 
 export const getActiveAcademicDisciplines = async (req, res) => {
   try {
-    // Fetch all academic disciplines with status "Active"
+    // Fetch all academic disciplines with status "Active" or "active" (case-insensitive)
     const activeDisciplines = await AcademicDiscipline.find({
-      status: "Active",
+      status: { $regex: /^active$/i },
     }).sort({ name: 1 }); // Sort alphabetically by name
 
+    console.log("Found disciplines:", activeDisciplines.length);
+
     if (!activeDisciplines || activeDisciplines.length === 0) {
+      // Check if any disciplines exist at all
+      const totalCount = await AcademicDiscipline.countDocuments();
+      console.log("Total disciplines in DB:", totalCount);
+
       return res.status(404).json({
         success: false,
         message: "No active academic disciplines found.",
+        debug: {
+          totalInDatabase: totalCount,
+          hint: "Check if status field is 'Active' (capital A)",
+        },
       });
     }
 
