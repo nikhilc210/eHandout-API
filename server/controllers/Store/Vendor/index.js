@@ -9,6 +9,7 @@ import {
   StoreVendoreBookCover,
   VendorEbook,
 } from "../../../models/Store/Vendor/index.js";
+import { AcademicDiscipline } from "../../../models/AcademicDiscipline/index.js";
 export const registerStoreVendor = async (req, res) => {
   console.log("Request body:", req.body); // <--- add this
 
@@ -456,6 +457,33 @@ export const geteBookCoverInformation = async (req, res) => {
   }
 };
 
+export const getAllLockedBookCovers = async (req, res) => {
+  try {
+    // Fetch all locked book covers from all vendors
+    const lockedCovers = await StoreVendoreBookCover.find({ isLocked: true });
+
+    if (!lockedCovers || lockedCovers.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No locked eBook covers found.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Locked book covers fetched successfully.",
+      count: lockedCovers.length,
+      data: lockedCovers,
+    });
+  } catch (error) {
+    console.error("Error fetching locked book covers:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error: " + error.message,
+    });
+  }
+};
+
 // Helper function to parse price strings with commas
 const parsePrice = (priceString) => {
   if (typeof priceString === "number") return priceString;
@@ -690,6 +718,35 @@ export const publishEbook = async (req, res) => {
     });
   } catch (error) {
     console.error("Error publishing eBook:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error: " + error.message,
+    });
+  }
+};
+
+export const getActiveAcademicDisciplines = async (req, res) => {
+  try {
+    // Fetch all academic disciplines with status "Active"
+    const activeDisciplines = await AcademicDiscipline.find({
+      status: "Active",
+    }).sort({ name: 1 }); // Sort alphabetically by name
+
+    if (!activeDisciplines || activeDisciplines.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No active academic disciplines found.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Active academic disciplines fetched successfully.",
+      count: activeDisciplines.length,
+      data: activeDisciplines,
+    });
+  } catch (error) {
+    console.error("Error fetching academic disciplines:", error);
     return res.status(500).json({
       success: false,
       message: "Internal server error: " + error.message,

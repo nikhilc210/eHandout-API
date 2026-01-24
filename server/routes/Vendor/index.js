@@ -13,6 +13,8 @@ import {
   resendStoreVendorOtp,
   storeVendorAuth,
   publishEbook,
+  getAllLockedBookCovers,
+  getActiveAcademicDisciplines,
 } from "../../controllers/Store/Vendor/index.js";
 import { verifyToken } from "../../middleware/Tokens/index.js";
 
@@ -29,6 +31,8 @@ router.post("/vendoreBookCover", verifyToken, createeBookCover);
 router.put("/vendoreBookCover", verifyToken, updateeBookCover);
 router.get("/vendoreBookCover", verifyToken, getAlleBookCover);
 router.get("/vendoreBookCover/:coverId", verifyToken, geteBookCoverInformation);
+router.get("/lockedBookCovers", verifyToken, getAllLockedBookCovers);
+router.get("/academicDisciplines", verifyToken, getActiveAcademicDisciplines);
 router.post("/publishEbook", verifyToken, publishEbook);
 
 export default router;
