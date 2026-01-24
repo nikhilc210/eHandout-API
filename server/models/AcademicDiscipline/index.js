@@ -18,6 +18,7 @@ const academicDisciplineSchema = new mongoose.Schema(
 const AcademicDiscipline = mongoose.model(
   "AcademicDiscipline",
   academicDisciplineSchema,
+  "acedemicDisciplines", // Explicitly set collection name (note: acedemicDisciplines with typo)
 );
 
 export { AcademicDiscipline };
