@@ -89,6 +89,7 @@ const storeVendoreBookCoverSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
+// Simple schema for locked books
 const vendorEbookSchema = new mongoose.Schema(
   {
     vendorId: { type: String, required: true },
@@ -96,6 +97,53 @@ const vendorEbookSchema = new mongoose.Schema(
     bookName: { type: String, required: true },
     bookURL: { type: String, required: true },
     isLocked: { type: Boolean, default: false },
+  },
+  { timestamps: true },
+);
+
+// Full schema for published eBooks
+const publishedEbookSchema = new mongoose.Schema(
+  {
+    vendorId: { type: String, required: true },
+    ebookId: { type: String, required: true, unique: true },
+    academicDiscipline: { type: String, required: true },
+    ebookTitle: { type: String, required: true },
+    author: { type: String, required: true },
+    publisher: { type: String, required: true },
+    publishedDate: { type: String, required: true },
+    edition: { type: String },
+    series: { type: String },
+    isbn: { type: String, required: true },
+    language: { type: String, required: true },
+    synopsis: { type: String, required: true },
+    aboutAuthor: { type: String, required: true },
+    academicRecommendation: {
+      type: String,
+      enum: ["yes", "no"],
+      required: true,
+    },
+    publicDomain: { type: String, enum: ["yes", "no"], required: true },
+    ebookCover: { type: String, required: true }, // Cover URL
+    ebookContent: { type: String, required: true }, // Content URL
+    salePrice: { type: Number, required: true },
+    makeAvailableForBorrow: { type: Boolean, default: false },
+    borrowFee: { type: Number },
+    borrowPeriod: { type: Number }, // in days
+    legalAuthorization: { type: Boolean, required: true },
+    status: {
+      type: String,
+      enum: [
+        "Pending Review",
+        "In Review",
+        "Ready For Sale",
+        "Not Approved",
+        "Updated",
+        "Suspended",
+        "Unpublished",
+      ],
+      default: "Pending Review",
+    },
+    dateListed: { type: Date, default: Date.now },
   },
   { timestamps: true },
 );
@@ -116,7 +164,12 @@ const StoreVendoreBookCover = mongoose.model(
 const VendorEbook = mongoose.model(
   "VendorEbook",
   vendorEbookSchema,
-  "storeVendorEbook", // Explicit collection name
+  "storeVendorEbook", // Explicit collection name for locked books
+);
+const PublishedEbook = mongoose.model(
+  "PublishedEbook",
+  publishedEbookSchema,
+  "publishedebooks", // Collection name for full published eBooks
 );
 
 export {
@@ -125,4 +178,5 @@ export {
   StoreVendorBankInformation,
   StoreVendoreBookCover,
   VendorEbook,
+  PublishedEbook,
 };

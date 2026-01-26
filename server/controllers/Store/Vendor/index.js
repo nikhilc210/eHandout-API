@@ -8,6 +8,7 @@ import {
   StoreVendorBankInformation,
   StoreVendoreBookCover,
   VendorEbook,
+  PublishedEbook,
 } from "../../../models/Store/Vendor/index.js";
 import { AcademicDiscipline } from "../../../models/AcademicDiscipline/index.js";
 export const registerStoreVendor = async (req, res) => {
@@ -675,7 +676,7 @@ export const publishEbook = async (req, res) => {
     const ebookId = generateIds("ENG", 12, false);
 
     // Create the eBook
-    const newEbook = await VendorEbook.create({
+    const newEbook = await PublishedEbook.create({
       vendorId,
       ebookId,
       academicDiscipline,
