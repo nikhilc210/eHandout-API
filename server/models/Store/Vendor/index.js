@@ -110,13 +110,14 @@ const vendorEbookSchema = new mongoose.Schema(
       required: true,
     },
     publicDomain: { type: String, enum: ["yes", "no"], required: true },
-    ebookCover: { type: String, required: true }, // Cover ID
-    ebookContent: { type: String, required: true }, // Content ID
+    ebookCover: { type: String, required: true }, // Cover URL
+    ebookContent: { type: String, required: true }, // Content URL
     salePrice: { type: Number, required: true },
     makeAvailableForBorrow: { type: Boolean, default: false },
     borrowFee: { type: Number },
     borrowPeriod: { type: Number }, // in days
     legalAuthorization: { type: Boolean, required: true },
+    isLocked: { type: Boolean, default: false },
     status: {
       type: String,
       enum: [
@@ -148,7 +149,11 @@ const StoreVendoreBookCover = mongoose.model(
   "storeVendoreBookCover",
   storeVendoreBookCoverSchema,
 );
-const VendorEbook = mongoose.model("VendorEbook", vendorEbookSchema);
+const VendorEbook = mongoose.model(
+  "VendorEbook",
+  vendorEbookSchema,
+  "storeVendorEbook", // Explicit collection name
+);
 
 export {
   StoreVendor,

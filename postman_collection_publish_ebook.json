@@ -1,0 +1,130 @@
+{
+  "info": {
+    "name": "eHandout API - Publish eBook",
+    "description": "Test collection for the Publish eBook endpoint",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Publish eBook - Complete Request",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{JWT_TOKEN}}",
+            "description": "Replace {{JWT_TOKEN}} with your actual JWT token"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"academicDiscipline\": \"Computer Science\",\n  \"ebookTitle\": \"Introduction to JavaScript Programming\",\n  \"author\": \"John Doe\",\n  \"publisher\": \"Tech Books Publishing House\",\n  \"publishedDate\": \"2026-01-15\",\n  \"edition\": \"2nd Edition\",\n  \"series\": \"Web Development Series\",\n  \"isbn\": \"978-3-16-148410-0\",\n  \"language\": \"English\",\n  \"synopsis\": \"A comprehensive guide to JavaScript programming for beginners and intermediate developers. This book covers ES6+ features, async programming, and modern web development practices.\",\n  \"aboutAuthor\": \"John Doe is a senior software engineer with over 10 years of experience in web development. He has worked with major tech companies and contributed to open-source projects.\",\n  \"academicRecommendation\": \"yes\",\n  \"publicDomain\": \"no\",\n  \"ebookCover\": \"65f25ab52b4c29cf69ee2401bbe\",\n  \"ebookContent\": \"65f25ab52b4c29cf69ee2401bbf\",\n  \"salePrice\": 8000,\n  \"makeAvailableForBorrow\": true,\n  \"borrowFee\": 500,\n  \"borrowPeriod\": 14,\n  \"legalAuthorization\": true\n}"
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/api/store/vendor/publishEbook",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "store", "vendor", "publishEbook"]
+        },
+        "description": "Complete request with all fields including optional borrow settings"
+      },
+      "response": []
+    },
+    {
+      "name": "Publish eBook - Without Borrow Option",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{JWT_TOKEN}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"academicDiscipline\": \"Mathematics\",\n  \"ebookTitle\": \"Advanced Calculus\",\n  \"author\": \"Jane Smith\",\n  \"publisher\": \"Academic Press\",\n  \"publishedDate\": \"2025-12-01\",\n  \"edition\": \"1st Edition\",\n  \"isbn\": \"978-0-123456-78-9\",\n  \"language\": \"English\",\n  \"synopsis\": \"An advanced textbook on calculus covering limits, derivatives, integrals, and series.\",\n  \"aboutAuthor\": \"Jane Smith is a professor of mathematics with 20 years of teaching experience.\",\n  \"academicRecommendation\": \"yes\",\n  \"publicDomain\": \"no\",\n  \"ebookCover\": \"65f25ab52b4c29cf69ee2401bbe\",\n  \"ebookContent\": \"65f25ab52b4c29cf69ee2401bbf\",\n  \"salePrice\": 12000,\n  \"makeAvailableForBorrow\": false,\n  \"legalAuthorization\": true\n}"
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/api/store/vendor/publishEbook",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "store", "vendor", "publishEbook"]
+        },
+        "description": "Request without borrow options enabled"
+      },
+      "response": []
+    },
+    {
+      "name": "Publish eBook - With Comma Formatted Price",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{JWT_TOKEN}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"academicDiscipline\": \"Physics\",\n  \"ebookTitle\": \"Quantum Mechanics Fundamentals\",\n  \"author\": \"Dr. Robert Johnson\",\n  \"publisher\": \"Science Publishers Ltd\",\n  \"publishedDate\": \"2026-01-01\",\n  \"isbn\": \"978-1-234567-89-0\",\n  \"language\": \"English\",\n  \"synopsis\": \"An introduction to quantum mechanics covering wave functions, operators, and quantum systems.\",\n  \"aboutAuthor\": \"Dr. Robert Johnson is a theoretical physicist specializing in quantum mechanics.\",\n  \"academicRecommendation\": \"yes\",\n  \"publicDomain\": \"no\",\n  \"ebookCover\": \"65f25ab52b4c29cf69ee2401bbe\",\n  \"ebookContent\": \"65f25ab52b4c29cf69ee2401bbf\",\n  \"salePrice\": \"15,000\",\n  \"makeAvailableForBorrow\": true,\n  \"borrowFee\": \"1,000\",\n  \"borrowPeriod\": 30,\n  \"legalAuthorization\": true\n}"
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/api/store/vendor/publishEbook",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "store", "vendor", "publishEbook"]
+        },
+        "description": "Test with comma-formatted prices to verify price parsing"
+      },
+      "response": []
+    },
+    {
+      "name": "Publish eBook - ISBN-10 Format",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{JWT_TOKEN}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"academicDiscipline\": \"Literature\",\n  \"ebookTitle\": \"Classic Poetry Collection\",\n  \"author\": \"Various Authors\",\n  \"publisher\": \"Literary Press\",\n  \"publishedDate\": \"2025-11-15\",\n  \"isbn\": \"0-123456-78-9\",\n  \"language\": \"English\",\n  \"synopsis\": \"A collection of classic poetry from renowned authors.\",\n  \"aboutAuthor\": \"This anthology features works from multiple acclaimed poets.\",\n  \"academicRecommendation\": \"yes\",\n  \"publicDomain\": \"yes\",\n  \"ebookCover\": \"65f25ab52b4c29cf69ee2401bbe\",\n  \"ebookContent\": \"65f25ab52b4c29cf69ee2401bbf\",\n  \"salePrice\": 3000,\n  \"legalAuthorization\": true\n}"
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/api/store/vendor/publishEbook",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "store", "vendor", "publishEbook"]
+        },
+        "description": "Test with ISBN-10 format"
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "BASE_URL",
+      "value": "http://localhost:5001",
+      "type": "string"
+    },
+    {
+      "key": "JWT_TOKEN",
+      "value": "your-jwt-token-here",
+      "type": "string"
+    }
+  ]
+}

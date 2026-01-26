@@ -763,3 +763,47 @@ export const getActiveAcademicDisciplines = async (req, res) => {
     });
   }
 };
+
+// @desc    Get all locked eBooks from all vendors
+// @route   GET /api/store/vendor/lockedEbooks
+// @access  Private (JWT)
+export const getAllLockedEbooks = async (req, res) => {
+  try {
+    // Fetch all eBooks with isLocked = true
+    const lockedEbooks = await VendorEbook.find({ isLocked: true })
+      .select(
+        "vendorId ebookId academicDiscipline ebookTitle author publisher publishedDate edition series isbn language synopsis aboutAuthor ebookCover salePrice makeAvailableForBorrow borrowFee borrowPeriod status dateListed createdAt",
+      )
+      .sort({ createdAt: -1 }); // Sort by newest first
+
+    console.log("Found locked eBooks:", lockedEbooks.length);
+
+    if (!lockedEbooks || lockedEbooks.length === 0) {
+      // Check if any eBooks exist at all
+      const totalCount = await VendorEbook.countDocuments();
+      console.log("Total eBooks in DB:", totalCount);
+
+      return res.status(404).json({
+        success: false,
+        message: "No locked eBooks found.",
+        debug: {
+          totalInDatabase: totalCount,
+          hint: "Check if any eBooks have isLocked: true",
+        },
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Locked eBooks fetched successfully.",
+      count: lockedEbooks.length,
+      data: lockedEbooks,
+    });
+  } catch (error) {
+    console.error("Error fetching locked eBooks:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error: " + error.message,
+    });
+  }
+};
