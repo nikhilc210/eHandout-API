@@ -771,9 +771,7 @@ export const getAllLockedEbooks = async (req, res) => {
   try {
     // Fetch all eBooks with isLocked = true
     const lockedEbooks = await VendorEbook.find({ isLocked: true })
-      .select(
-        "vendorId ebookId academicDiscipline ebookTitle author publisher publishedDate edition series isbn language synopsis aboutAuthor ebookCover salePrice makeAvailableForBorrow borrowFee borrowPeriod status dateListed createdAt",
-      )
+      .select("vendorId bookId bookName bookURL isLocked createdAt updatedAt")
       .sort({ createdAt: -1 }); // Sort by newest first
 
     console.log("Found locked eBooks:", lockedEbooks.length);
