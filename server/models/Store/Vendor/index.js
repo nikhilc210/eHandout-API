@@ -192,6 +192,30 @@ const VendorTestimonial = mongoose.model(
   "vendortestimonials",
 );
 
+// Schema for vendor contact messages to eHandout
+const vendorContactSchema = new mongoose.Schema(
+  {
+    vendorId: { type: String, required: true },
+    email: { type: String, required: true },
+    messageCategory: { type: String, required: true },
+    message: { type: String, required: true, maxlength: 1000 },
+    status: {
+      type: String,
+      enum: ["Pending", "In Progress", "Resolved", "Closed"],
+      default: "Pending",
+    },
+    response: { type: String },
+    respondedAt: { type: Date },
+  },
+  { timestamps: true },
+);
+
+const VendorContact = mongoose.model(
+  "VendorContact",
+  vendorContactSchema,
+  "vendorcontacts",
+);
+
 export {
   StoreVendor,
   StoreVendorInformation,
@@ -200,4 +224,5 @@ export {
   VendorEbook,
   PublishedEbook,
   VendorTestimonial,
+  VendorContact,
 };

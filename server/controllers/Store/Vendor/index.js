@@ -10,6 +10,7 @@ import {
   VendorEbook,
   PublishedEbook,
   VendorTestimonial,
+  VendorContact,
 } from "../../../models/Store/Vendor/index.js";
 import { AcademicDiscipline } from "../../../models/AcademicDiscipline/index.js";
 export const registerStoreVendor = async (req, res) => {
@@ -1483,6 +1484,86 @@ export const setInactiveTimeout = async (req, res) => {
     });
   } catch (error) {
     console.error("Error setting inactive timeout:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error: " + error.message,
+    });
+  }
+};
+
+// @desc    Submit contact message to eHandout
+// @route   POST /api/store/vendor/contact
+// @access  Private (JWT)
+export const submitContactMessage = async (req, res) => {
+  try {
+    const { id: vendorId } = req.vendor; // Get vendor ID from token
+    const { messageCategory, message } = req.body;
+
+    // Validate required fields
+    if (!messageCategory || !messageCategory.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Please select a message category.",
+      });
+    }
+
+    if (!message || !message.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Please enter your message.",
+      });
+    }
+
+    // Validate message length
+    if (message.length > 1000) {
+      return res.status(400).json({
+        success: false,
+        message: "Message cannot exceed 1000 characters.",
+      });
+    }
+
+    // Find vendor to get email and vendorId
+    const vendor = await StoreVendor.findById(vendorId);
+    if (!vendor) {
+      return res.status(404).json({
+        success: false,
+        message: "Vendor account not found.",
+      });
+    }
+
+    // Check if vendor account is suspended
+    if (vendor.accountStatus === "Suspended") {
+      return res.status(403).json({
+        success: false,
+        message: "Your account is suspended. Please contact support.",
+      });
+    }
+
+    // Create contact message
+    const contactMessage = new VendorContact({
+      vendorId: vendor.vendorId,
+      email: vendor.email,
+      messageCategory: messageCategory.trim(),
+      message: message.trim(),
+      status: "Pending",
+    });
+
+    await contactMessage.save();
+
+    return res.status(201).json({
+      success: true,
+      message:
+        "Your message has been sent successfully. We will respond to you shortly.",
+      data: {
+        id: contactMessage._id,
+        messageCategory: contactMessage.messageCategory,
+        message: contactMessage.message,
+        status: contactMessage.status,
+        createdAt: contactMessage.createdAt,
+      },
+    });
+  } catch (error) {
+    console.error("Error submitting contact message:", error);
     return res.status(500).json({
       success: false,
       message: "Internal server error: " + error.message,

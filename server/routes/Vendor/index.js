@@ -25,6 +25,7 @@ import {
   verifyTwoFactorCode,
   getTwoFactorStatus,
   setInactiveTimeout,
+  submitContactMessage,
 } from "../../controllers/Store/Vendor/index.js";
 import { verifyToken } from "../../middleware/Tokens/index.js";
 
@@ -53,6 +54,7 @@ router.post("/toggleTwoFactor", verifyToken, toggleTwoFactorAuth);
 router.post("/verifyTwoFactor", verifyToken, verifyTwoFactorCode);
 router.get("/twoFactorStatus", verifyToken, getTwoFactorStatus);
 router.put("/inactiveTimeout", verifyToken, setInactiveTimeout);
+router.post("/vendorContact", verifyToken, submitContactMessage);
 router.post("/publishEbook", verifyToken, publishEbook);
 
 export default router;
