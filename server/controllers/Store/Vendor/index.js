@@ -703,7 +703,7 @@ export const publishEbook = async (req, res) => {
       borrowFee: parsedBorrowFee,
       borrowPeriod: parsedBorrowPeriod,
       legalAuthorization,
-      status: "Pending Review",
+      status: "Active",
       dateListed: new Date(),
     });
 
@@ -715,7 +715,7 @@ export const publishEbook = async (req, res) => {
     return res.status(201).json({
       success: true,
       message:
-        "Congratulations! Your eBook has been successfully published on eHandout Books and is pending review.",
+        "Congratulations! Your eBook has been successfully published on eHandout Books.",
       data: {
         publishId: newEbook.publishId,
         ebookId: newEbook.ebookId,
