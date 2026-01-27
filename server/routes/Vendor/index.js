@@ -18,6 +18,7 @@ import {
   getAllLockedEbooks,
   getMyPublishedEbooks,
   getPublishedEbookById,
+  updatePublishedEbook,
 } from "../../controllers/Store/Vendor/index.js";
 import { verifyToken } from "../../middleware/Tokens/index.js";
 
@@ -39,6 +40,7 @@ router.get("/academicDisciplines", verifyToken, getActiveAcademicDisciplines);
 router.get("/lockedEbooks", verifyToken, getAllLockedEbooks);
 router.get("/myPublishedEbooks", verifyToken, getMyPublishedEbooks);
 router.get("/publishedEbook/:ebookId", verifyToken, getPublishedEbookById);
+router.put("/publishedEbook/:ebookId", verifyToken, updatePublishedEbook);
 router.post("/publishEbook", verifyToken, publishEbook);
 
 export default router;

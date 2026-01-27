@@ -948,3 +948,141 @@ export const getPublishedEbookById = async (req, res) => {
     });
   }
 };
+
+// @desc    Update a published eBook (only editable fields)
+// @route   PUT /api/store/vendor/publishedEbook/:ebookId
+// @access  Private (JWT)
+export const updatePublishedEbook = async (req, res) => {
+  try {
+    const { id: vendorId } = req.vendor; // Get vendor ID from token
+    const { ebookId } = req.params; // Get eBook ID from URL parameter
+    const { status, aboutAuthor, academicRecommendation, publicDomain } =
+      req.body;
+
+    // Validate required fields
+    if (!status || !aboutAuthor || !academicRecommendation || !publicDomain) {
+      return res.status(400).json({
+        success: false,
+        message: "All editable fields are required.",
+        errors: {
+          status: !status ? "Status is required" : undefined,
+          aboutAuthor: !aboutAuthor ? "About Author is required" : undefined,
+          academicRecommendation: !academicRecommendation
+            ? "Academic recommendation is required"
+            : undefined,
+          publicDomain: !publicDomain ? "Public domain is required" : undefined,
+        },
+      });
+    }
+
+    // Validate status enum
+    const validStatuses = ["Active", "Suspend", "Reinstate", "Republish"];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Validation failed.",
+        errors: {
+          status: `Invalid status value. Must be one of: ${validStatuses.join(", ")}`,
+        },
+      });
+    }
+
+    // Validate academicRecommendation
+    if (!["yes", "no"].includes(academicRecommendation)) {
+      return res.status(400).json({
+        success: false,
+        message: "Validation failed.",
+        errors: {
+          academicRecommendation:
+            "Academic recommendation must be 'yes' or 'no'",
+        },
+      });
+    }
+
+    // Validate publicDomain
+    if (!["yes", "no"].includes(publicDomain)) {
+      return res.status(400).json({
+        success: false,
+        message: "Validation failed.",
+        errors: {
+          publicDomain: "Public domain must be 'yes' or 'no'",
+        },
+      });
+    }
+
+    // Find the eBook first
+    const ebook = await PublishedEbook.findById(ebookId);
+
+    if (!ebook) {
+      return res.status(404).json({
+        success: false,
+        message: "eBook not found.",
+      });
+    }
+
+    // Check if this eBook belongs to the logged-in vendor
+    if (ebook.vendorId !== vendorId) {
+      return res.status(403).json({
+        success: false,
+        message: "You don't have permission to update this eBook.",
+      });
+    }
+
+    // Update only the editable fields
+    const allowedUpdates = {
+      status,
+      aboutAuthor,
+      academicRecommendation,
+      publicDomain,
+    };
+
+    const updatedEbook = await PublishedEbook.findByIdAndUpdate(
+      ebookId,
+      { $set: allowedUpdates },
+      { new: true, runValidators: true },
+    );
+
+    // Lookup academic discipline name for response
+    let discipline = await AcademicDiscipline.findById(
+      updatedEbook.academicDiscipline,
+    );
+
+    if (!discipline) {
+      discipline = await AcademicDiscipline.findOne({
+        disciplineId: updatedEbook.academicDiscipline,
+      });
+    }
+
+    if (!discipline) {
+      discipline = await AcademicDiscipline.findOne({
+        name: {
+          $regex: new RegExp(`^${updatedEbook.academicDiscipline}$`, "i"),
+        },
+      });
+    }
+
+    // Prepare the response with discipline name
+    const ebookDetails = {
+      ...updatedEbook.toObject(),
+      academicDisciplineName: discipline
+        ? discipline.name
+        : updatedEbook.academicDiscipline,
+    };
+
+    console.log(
+      `eBook ${ebookId} updated by vendor ${vendorId}. Status: ${status}`,
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "eBook updated successfully.",
+      data: ebookDetails,
+    });
+  } catch (error) {
+    console.error("Error updating eBook:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error: " + error.message,
+    });
+  }
+};
