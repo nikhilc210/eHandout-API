@@ -105,6 +105,7 @@ const vendorEbookSchema = new mongoose.Schema(
 const publishedEbookSchema = new mongoose.Schema(
   {
     vendorId: { type: String, required: true },
+    publishId: { type: String, required: true, unique: true }, // PUB + 12 digits
     ebookId: { type: String, required: true, unique: true },
     academicDiscipline: { type: String, required: true },
     ebookTitle: { type: String, required: true },

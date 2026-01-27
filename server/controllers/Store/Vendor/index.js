@@ -675,9 +675,13 @@ export const publishEbook = async (req, res) => {
     // Generate unique eBook ID (ENG + 12 random numbers)
     const ebookId = generateIds("ENG", 12, false);
 
+    // Generate unique Publish ID (PUB + 12 random numbers)
+    const publishId = generateIds("PUB", 12, false);
+
     // Create the eBook
     const newEbook = await PublishedEbook.create({
       vendorId,
+      publishId,
       ebookId,
       academicDiscipline,
       ebookTitle,
@@ -710,8 +714,10 @@ export const publishEbook = async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      message: "eBook published successfully",
+      message:
+        "Congratulations! Your eBook has been successfully published on eHandout Books and is pending review.",
       data: {
+        publishId: newEbook.publishId,
         ebookId: newEbook.ebookId,
         status: newEbook.status,
         dateListed: formattedDate,
