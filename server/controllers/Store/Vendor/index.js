@@ -1588,10 +1588,17 @@ export const getVendorDashboard = async (req, res) => {
       });
     }
 
-    // Find vendor detailed information
-    const vendorInfo = await StoreVendorInformation.findOne({
+    // Find vendor detailed information - try both MongoDB _id and custom vendorId
+    let vendorInfo = await StoreVendorInformation.findOne({
       vendorId: vendor.vendorId,
     });
+
+    // If not found by custom vendorId, try by MongoDB _id
+    if (!vendorInfo) {
+      vendorInfo = await StoreVendorInformation.findOne({
+        vendorId: vendorId,
+      });
+    }
 
     // Prepare dashboard data
     const dashboardData = {
