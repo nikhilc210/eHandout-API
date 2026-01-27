@@ -11,6 +11,7 @@ import {
   PublishedEbook,
   VendorTestimonial,
   VendorContact,
+  VendorTutorial,
 } from "../../../models/Store/Vendor/index.js";
 import { AcademicDiscipline } from "../../../models/AcademicDiscipline/index.js";
 export const registerStoreVendor = async (req, res) => {
@@ -1614,6 +1615,29 @@ export const getVendorDashboard = async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching vendor dashboard:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error: " + error.message,
+    });
+  }
+};
+
+// @desc    Get all vendor tutorials
+// @route   GET /api/store/vendor/tutorials
+// @access  Private (JWT)
+export const getVendorTutorials = async (req, res) => {
+  try {
+    // Fetch all tutorials from the collection
+    const tutorials = await VendorTutorial.find().sort({ createdAt: -1 });
+
+    return res.status(200).json({
+      success: true,
+      message: "Vendor tutorials retrieved successfully.",
+      count: tutorials.length,
+      data: tutorials,
+    });
+  } catch (error) {
+    console.error("Error fetching vendor tutorials:", error);
     return res.status(500).json({
       success: false,
       message: "Internal server error: " + error.message,

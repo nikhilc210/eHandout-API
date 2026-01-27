@@ -216,6 +216,21 @@ const VendorContact = mongoose.model(
   "vendorcontacts",
 );
 
+// Schema for vendor tutorials
+const vendorTutorialSchema = new mongoose.Schema(
+  {
+    title: { type: String, required: true },
+    url: { type: String, required: true },
+  },
+  { timestamps: true },
+);
+
+const VendorTutorial = mongoose.model(
+  "VendorTutorial",
+  vendorTutorialSchema,
+  "vendorTutorials",
+);
+
 export {
   StoreVendor,
   StoreVendorInformation,
@@ -225,4 +240,5 @@ export {
   PublishedEbook,
   VendorTestimonial,
   VendorContact,
+  VendorTutorial,
 };

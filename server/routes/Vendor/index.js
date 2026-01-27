@@ -27,6 +27,7 @@ import {
   setInactiveTimeout,
   submitContactMessage,
   getVendorDashboard,
+  getVendorTutorials,
 } from "../../controllers/Store/Vendor/index.js";
 import { verifyToken } from "../../middleware/Tokens/index.js";
 
@@ -36,6 +37,7 @@ router.post("/verifyOtp", verifyStoreVendor);
 router.post("/resendOtp", resendStoreVendorOtp);
 router.post("/auth", storeVendorAuth);
 router.get("/dashboard", verifyToken, getVendorDashboard);
+router.get("/tutorials", verifyToken, getVendorTutorials);
 router.post("/vendorInformation", verifyToken, updateVendorInformation);
 router.get("/vendorInformation", verifyToken, getCurrentVendorInformation);
 router.post("/vendorBankInformation", verifyToken, updateVendorBankInformation);
