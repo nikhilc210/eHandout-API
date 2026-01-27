@@ -16,6 +16,10 @@ const storeVendorSignupSchema = new mongoose.Schema(
       enum: ["Pending", "Active", "Suspended"],
       default: "Pending",
     },
+    twoFactorEnabled: { type: Boolean, default: false },
+    twoFactorCode: { type: Number },
+    twoFactorCodeExpiry: { type: Date },
+    inactiveTimeout: { type: Number, default: 30 }, // in minutes
   },
   { timestamps: true },
 );

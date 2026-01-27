@@ -20,6 +20,10 @@ import {
   getPublishedEbookById,
   updatePublishedEbook,
   submitTestimonial,
+  changePassword,
+  toggleTwoFactorAuth,
+  verifyTwoFactorCode,
+  setInactiveTimeout,
 } from "../../controllers/Store/Vendor/index.js";
 import { verifyToken } from "../../middleware/Tokens/index.js";
 
@@ -43,6 +47,10 @@ router.get("/myPublishedEbooks", verifyToken, getMyPublishedEbooks);
 router.get("/publishedEbook/:ebookId", verifyToken, getPublishedEbookById);
 router.put("/publishedEbook/:ebookId", verifyToken, updatePublishedEbook);
 router.post("/testimonial", verifyToken, submitTestimonial);
+router.put("/changePassword", verifyToken, changePassword);
+router.post("/toggleTwoFactor", verifyToken, toggleTwoFactorAuth);
+router.post("/verifyTwoFactor", verifyToken, verifyTwoFactorCode);
+router.put("/inactiveTimeout", verifyToken, setInactiveTimeout);
 router.post("/publishEbook", verifyToken, publishEbook);
 
 export default router;

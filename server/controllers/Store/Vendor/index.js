@@ -1204,3 +1204,255 @@ export const submitTestimonial = async (req, res) => {
     });
   }
 };
+
+// @desc    Change vendor password
+// @route   PUT /api/store/vendor/changePassword
+// @access  Private (JWT)
+export const changePassword = async (req, res) => {
+  try {
+    const { id: vendorId } = req.vendor; // Get vendor ID from token
+    const { currentPassword, newPassword, confirmNewPassword } = req.body;
+
+    // Validate required fields
+    if (!currentPassword || !newPassword || !confirmNewPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "All fields are required.",
+      });
+    }
+
+    // Validate new password length (minimum 8 characters)
+    if (newPassword.length < 8) {
+      return res.status(400).json({
+        success: false,
+        message: "Your Password must be at least 8 characters long.",
+      });
+    }
+
+    // Check if new password and confirm password match
+    if (newPassword !== confirmNewPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "New password and confirm password do not match.",
+      });
+    }
+
+    // Find vendor by ID
+    const vendor = await StoreVendor.findById(vendorId);
+    if (!vendor) {
+      return res.status(404).json({
+        success: false,
+        message: "Vendor account not found.",
+      });
+    }
+
+    // Verify current password
+    const isMatch = await bcrypt.compare(currentPassword, vendor.password);
+    if (!isMatch) {
+      return res.status(401).json({
+        success: false,
+        message: "Current password is incorrect.",
+      });
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update password
+    vendor.password = hashedPassword;
+    await vendor.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Your password has been changed successfully",
+    });
+  } catch (error) {
+    console.error("Error changing password:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error: " + error.message,
+    });
+  }
+};
+
+// @desc    Toggle Two-Factor Authentication and send verification code
+// @route   POST /api/store/vendor/toggleTwoFactor
+// @access  Private (JWT)
+export const toggleTwoFactorAuth = async (req, res) => {
+  try {
+    const { id: vendorId } = req.vendor; // Get vendor ID from token
+    const { enable } = req.body; // true to enable, false to disable
+
+    if (enable === undefined) {
+      return res.status(400).json({
+        success: false,
+        message: "Please specify whether to enable or disable 2FA.",
+      });
+    }
+
+    // Find vendor by ID
+    const vendor = await StoreVendor.findById(vendorId);
+    if (!vendor) {
+      return res.status(404).json({
+        success: false,
+        message: "Vendor account not found.",
+      });
+    }
+
+    if (enable) {
+      // Generate 4-digit verification code
+      const verificationCode = Math.floor(1000 + Math.random() * 9000);
+      const codeExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes expiry
+
+      vendor.twoFactorCode = verificationCode;
+      vendor.twoFactorCodeExpiry = codeExpiry;
+      await vendor.save();
+
+      // TODO: Send verification code to vendor email
+      console.log(`2FA Code for ${vendor.email}: ${verificationCode}`);
+
+      return res.status(200).json({
+        success: true,
+        message: `A verification code has been sent to ${vendor.email}. Please check your inbox, enter the code below, and then click 'Verify'`,
+        code: verificationCode, // Remove in production
+      });
+    } else {
+      // Disable 2FA
+      vendor.twoFactorEnabled = false;
+      vendor.twoFactorCode = null;
+      vendor.twoFactorCodeExpiry = null;
+      await vendor.save();
+
+      return res.status(200).json({
+        success: true,
+        message: "Two-Factor Authentication has been disabled.",
+      });
+    }
+  } catch (error) {
+    console.error("Error toggling 2FA:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error: " + error.message,
+    });
+  }
+};
+
+// @desc    Verify Two-Factor Authentication code
+// @route   POST /api/store/vendor/verifyTwoFactor
+// @access  Private (JWT)
+export const verifyTwoFactorCode = async (req, res) => {
+  try {
+    const { id: vendorId } = req.vendor; // Get vendor ID from token
+    const { code } = req.body;
+
+    if (!code) {
+      return res.status(400).json({
+        success: false,
+        message: "Verification code is required.",
+      });
+    }
+
+    // Find vendor by ID
+    const vendor = await StoreVendor.findById(vendorId);
+    if (!vendor) {
+      return res.status(404).json({
+        success: false,
+        message: "Vendor account not found.",
+      });
+    }
+
+    // Check if code exists
+    if (!vendor.twoFactorCode) {
+      return res.status(400).json({
+        success: false,
+        message: "No verification code found. Please request a new code.",
+      });
+    }
+
+    // Check if code expired
+    if (vendor.twoFactorCodeExpiry < Date.now()) {
+      return res.status(400).json({
+        success: false,
+        message: "Verification code has expired. Please request a new code.",
+      });
+    }
+
+    // Verify code
+    if (vendor.twoFactorCode !== parseInt(code)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid verification code.",
+      });
+    }
+
+    // Enable 2FA and clear verification code
+    vendor.twoFactorEnabled = true;
+    vendor.twoFactorCode = null;
+    vendor.twoFactorCodeExpiry = null;
+    await vendor.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Two-Factor Authentication has been enabled successfully.",
+    });
+  } catch (error) {
+    console.error("Error verifying 2FA code:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error: " + error.message,
+    });
+  }
+};
+
+// @desc    Set inactive timeout setting
+// @route   PUT /api/store/vendor/inactiveTimeout
+// @access  Private (JWT)
+export const setInactiveTimeout = async (req, res) => {
+  try {
+    const { id: vendorId } = req.vendor; // Get vendor ID from token
+    const { timeoutMinutes } = req.body;
+
+    // Validate timeout value
+    if (!timeoutMinutes || timeoutMinutes < 1) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide a valid timeout value (minimum 1 minute).",
+      });
+    }
+
+    // Recommended minimum is 30 minutes
+    if (timeoutMinutes < 30) {
+      return res.status(400).json({
+        success: false,
+        message: "Please set the default session inactive timeout to 30mins",
+      });
+    }
+
+    // Find vendor by ID
+    const vendor = await StoreVendor.findById(vendorId);
+    if (!vendor) {
+      return res.status(404).json({
+        success: false,
+        message: "Vendor account not found.",
+      });
+    }
+
+    // Update inactive timeout setting
+    vendor.inactiveTimeout = timeoutMinutes;
+    await vendor.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Your inactive timeout setting has been saved successfully",
+      data: {
+        timeoutMinutes: vendor.inactiveTimeout,
+      },
+    });
+  } catch (error) {
+    console.error("Error setting inactive timeout:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error: " + error.message,
+    });
+  }
+};
