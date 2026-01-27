@@ -841,11 +841,19 @@ export const getMyPublishedEbooks = async (req, res) => {
     // Populate academic discipline names
     const ebooksWithDisciplineNames = await Promise.all(
       publishedEbooks.map(async (ebook) => {
-        // Try to find by disciplineId first, then by name
-        let discipline = await AcademicDiscipline.findOne({
-          disciplineId: ebook.academicDiscipline,
-        });
+        // Try to find by _id (MongoDB ObjectId) first
+        let discipline = await AcademicDiscipline.findById(
+          ebook.academicDiscipline,
+        );
 
+        // If not found, try by disciplineId field
+        if (!discipline) {
+          discipline = await AcademicDiscipline.findOne({
+            disciplineId: ebook.academicDiscipline,
+          });
+        }
+
+        // If still not found, try by name
         if (!discipline) {
           discipline = await AcademicDiscipline.findOne({
             name: { $regex: new RegExp(`^${ebook.academicDiscipline}$`, "i") },
