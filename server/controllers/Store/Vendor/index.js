@@ -1553,7 +1553,7 @@ export const submitContactMessage = async (req, res) => {
     return res.status(201).json({
       success: true,
       message:
-        "Your message has been sent successfully. We will respond to you shortly.",
+        "Thank you for reaching out to The eHandout Team. We will endeavor to respond promptly to your inquiry.",
       data: {
         id: contactMessage._id,
         messageCategory: contactMessage.messageCategory,
