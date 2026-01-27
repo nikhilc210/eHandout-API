@@ -165,6 +165,29 @@ const PublishedEbook = mongoose.model(
   "publishedebooks", // Collection name for full published eBooks
 );
 
+// Vendor Testimonial Schema
+const vendorTestimonialSchema = new mongoose.Schema(
+  {
+    vendorId: { type: String, required: true },
+    rating: { type: Number, required: true, min: 1, max: 5 },
+    testimonial: { type: String, required: true, maxlength: 300 },
+    screenName: { type: String, required: true, maxlength: 25 },
+    consentToQuote: { type: Boolean, required: true },
+    status: {
+      type: String,
+      enum: ["Pending", "Approved", "Rejected"],
+      default: "Pending",
+    },
+  },
+  { timestamps: true },
+);
+
+const VendorTestimonial = mongoose.model(
+  "VendorTestimonial",
+  vendorTestimonialSchema,
+  "vendortestimonials",
+);
+
 export {
   StoreVendor,
   StoreVendorInformation,
@@ -172,4 +195,5 @@ export {
   StoreVendoreBookCover,
   VendorEbook,
   PublishedEbook,
+  VendorTestimonial,
 };

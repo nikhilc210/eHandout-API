@@ -9,6 +9,7 @@ import {
   StoreVendoreBookCover,
   VendorEbook,
   PublishedEbook,
+  VendorTestimonial,
 } from "../../../models/Store/Vendor/index.js";
 import { AcademicDiscipline } from "../../../models/AcademicDiscipline/index.js";
 export const registerStoreVendor = async (req, res) => {
@@ -1080,6 +1081,123 @@ export const updatePublishedEbook = async (req, res) => {
     });
   } catch (error) {
     console.error("Error updating eBook:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error: " + error.message,
+    });
+  }
+};
+
+// @desc    Submit vendor testimonial
+// @route   POST /api/store/vendor/testimonial
+// @access  Private (JWT)
+export const submitTestimonial = async (req, res) => {
+  try {
+    const { id: vendorId } = req.vendor; // Get vendor ID from token
+    const { rating, testimonial, screenName, consentToQuote } = req.body;
+
+    // Validate required fields
+    if (
+      !rating ||
+      !testimonial ||
+      !screenName ||
+      consentToQuote === undefined
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "All fields are required.",
+        errors: {
+          rating: !rating ? "Rating is required" : undefined,
+          testimonial: !testimonial ? "Testimonial is required" : undefined,
+          screenName: !screenName ? "Screen name is required" : undefined,
+          consentToQuote:
+            consentToQuote === undefined ? "Consent is required" : undefined,
+        },
+      });
+    }
+
+    // Validate rating
+    if (rating < 1 || rating > 5 || !Number.isInteger(rating)) {
+      return res.status(400).json({
+        success: false,
+        message: "Rating must be an integer between 1 and 5.",
+      });
+    }
+
+    // Validate testimonial length
+    if (testimonial.length > 300) {
+      return res.status(400).json({
+        success: false,
+        message: "Testimonial must not exceed 300 characters.",
+      });
+    }
+
+    // Validate screen name length
+    if (screenName.length > 25) {
+      return res.status(400).json({
+        success: false,
+        message: "Screen name must not exceed 25 characters.",
+      });
+    }
+
+    // Validate consent
+    if (consentToQuote !== true) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "You must agree that your testimonial may be quoted on the eHandout platforms.",
+      });
+    }
+
+    // Check vendor account status
+    const vendor = await StoreVendor.findOne({ vendorId });
+    if (!vendor) {
+      return res.status(404).json({
+        success: false,
+        message: "Vendor account not found.",
+      });
+    }
+
+    // Determine status based on vendor account status
+    let testimonialStatus = "Pending";
+    if (vendor.accountStatus === "Suspended") {
+      return res.status(403).json({
+        success: false,
+        message:
+          "Your account is suspended. You cannot submit testimonials at this time.",
+      });
+    }
+
+    if (vendor.accountStatus === "Active") {
+      testimonialStatus = "Pending"; // Will be reviewed by admin
+    }
+
+    // Create testimonial
+    const newTestimonial = await VendorTestimonial.create({
+      vendorId,
+      rating,
+      testimonial,
+      screenName,
+      consentToQuote,
+      status: testimonialStatus,
+    });
+
+    await newTestimonial.save();
+
+    return res.status(201).json({
+      success: true,
+      message: "Your rating and testimonial have been submitted successfully.",
+      data: {
+        id: newTestimonial._id,
+        rating: newTestimonial.rating,
+        testimonial: newTestimonial.testimonial,
+        screenName: newTestimonial.screenName,
+        status: newTestimonial.status,
+        createdAt: newTestimonial.createdAt,
+      },
+    });
+  } catch (error) {
+    console.error("Error submitting testimonial:", error);
     return res.status(500).json({
       success: false,
       message: "Internal server error: " + error.message,
