@@ -883,3 +883,68 @@ export const getMyPublishedEbooks = async (req, res) => {
     });
   }
 };
+
+// @desc    Get detailed information of a single published eBook by ID
+// @route   GET /api/store/vendor/publishedEbook/:ebookId
+// @access  Private (JWT)
+export const getPublishedEbookById = async (req, res) => {
+  try {
+    const { id: vendorId } = req.vendor; // Get vendor ID from token
+    const { ebookId } = req.params; // Get eBook ID from URL parameter
+
+    // Fetch the eBook by ID
+    const ebook = await PublishedEbook.findById(ebookId);
+
+    if (!ebook) {
+      return res.status(404).json({
+        success: false,
+        message: "eBook not found.",
+      });
+    }
+
+    // Check if this eBook belongs to the logged-in vendor
+    if (ebook.vendorId !== vendorId) {
+      return res.status(403).json({
+        success: false,
+        message: "You don't have permission to view this eBook.",
+      });
+    }
+
+    // Lookup academic discipline name
+    let discipline = await AcademicDiscipline.findById(
+      ebook.academicDiscipline,
+    );
+
+    if (!discipline) {
+      discipline = await AcademicDiscipline.findOne({
+        disciplineId: ebook.academicDiscipline,
+      });
+    }
+
+    if (!discipline) {
+      discipline = await AcademicDiscipline.findOne({
+        name: { $regex: new RegExp(`^${ebook.academicDiscipline}$`, "i") },
+      });
+    }
+
+    // Prepare the response with discipline name
+    const ebookDetails = {
+      ...ebook.toObject(),
+      academicDisciplineName: discipline
+        ? discipline.name
+        : ebook.academicDiscipline,
+    };
+
+    return res.status(200).json({
+      success: true,
+      message: "eBook details fetched successfully.",
+      data: ebookDetails,
+    });
+  } catch (error) {
+    console.error("Error fetching eBook details:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error: " + error.message,
+    });
+  }
+};
