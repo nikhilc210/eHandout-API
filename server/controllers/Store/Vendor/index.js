@@ -841,13 +841,22 @@ export const getMyPublishedEbooks = async (req, res) => {
     // Populate academic discipline names
     const ebooksWithDisciplineNames = await Promise.all(
       publishedEbooks.map(async (ebook) => {
-        const discipline = await AcademicDiscipline.findOne({
+        // Try to find by disciplineId first, then by name
+        let discipline = await AcademicDiscipline.findOne({
           disciplineId: ebook.academicDiscipline,
         });
 
+        if (!discipline) {
+          discipline = await AcademicDiscipline.findOne({
+            name: { $regex: new RegExp(`^${ebook.academicDiscipline}$`, "i") },
+          });
+        }
+
         return {
           ...ebook.toObject(),
-          academicDisciplineName: discipline ? discipline.name : "Unknown",
+          academicDisciplineName: discipline
+            ? discipline.name
+            : ebook.academicDiscipline,
         };
       }),
     );
