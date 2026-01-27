@@ -1172,9 +1172,9 @@ export const submitTestimonial = async (req, res) => {
       testimonialStatus = "Pending"; // Will be reviewed by admin
     }
 
-    // Create testimonial
+    // Create testimonial - use vendor.vendorId from the found vendor
     const newTestimonial = await VendorTestimonial.create({
-      vendorId,
+      vendorId: vendor.vendorId,
       rating,
       testimonial,
       screenName,
