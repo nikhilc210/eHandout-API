@@ -1570,3 +1570,53 @@ export const submitContactMessage = async (req, res) => {
     });
   }
 };
+
+// @desc    Get vendor dashboard information
+// @route   GET /api/store/vendor/dashboard
+// @access  Private (JWT)
+export const getVendorDashboard = async (req, res) => {
+  try {
+    const { id: vendorId } = req.vendor; // Get vendor ID from token
+
+    // Find vendor basic information
+    const vendor = await StoreVendor.findById(vendorId);
+    if (!vendor) {
+      return res.status(404).json({
+        success: false,
+        message: "Vendor account not found.",
+      });
+    }
+
+    // Find vendor detailed information
+    const vendorInfo = await StoreVendorInformation.findOne({
+      vendorId: vendor.vendorId,
+    });
+
+    // Prepare dashboard data
+    const dashboardData = {
+      vendorId: vendor.vendorId,
+      vendorName: vendorInfo ? vendorInfo.vendorName : "N/A",
+      accountType: vendorInfo ? vendorInfo.accountType : "N/A",
+      emailAddress: vendor.email,
+      emailVerified: vendor.emailVerified,
+      country: vendorInfo ? vendorInfo.country : vendor.country,
+      city: vendorInfo ? vendorInfo.city : "N/A",
+      phoneNumber: `${vendor.phoneCode}${vendor.mobile}`,
+      phoneVerified: vendor.mobileVerified,
+      accountStatus: vendor.accountStatus,
+      accountCreatedOn: vendor.createdAt,
+    };
+
+    return res.status(200).json({
+      success: true,
+      message: "Vendor dashboard information retrieved successfully.",
+      data: dashboardData,
+    });
+  } catch (error) {
+    console.error("Error fetching vendor dashboard:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error: " + error.message,
+    });
+  }
+};

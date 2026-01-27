@@ -26,6 +26,7 @@ import {
   getTwoFactorStatus,
   setInactiveTimeout,
   submitContactMessage,
+  getVendorDashboard,
 } from "../../controllers/Store/Vendor/index.js";
 import { verifyToken } from "../../middleware/Tokens/index.js";
 
@@ -34,6 +35,7 @@ router.post("/register", registerStoreVendor);
 router.post("/verifyOtp", verifyStoreVendor);
 router.post("/resendOtp", resendStoreVendorOtp);
 router.post("/auth", storeVendorAuth);
+router.get("/dashboard", verifyToken, getVendorDashboard);
 router.post("/vendorInformation", verifyToken, updateVendorInformation);
 router.get("/vendorInformation", verifyToken, getCurrentVendorInformation);
 router.post("/vendorBankInformation", verifyToken, updateVendorBankInformation);
