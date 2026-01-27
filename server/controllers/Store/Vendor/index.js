@@ -823,7 +823,7 @@ export const getMyPublishedEbooks = async (req, res) => {
     // Fetch all published eBooks for this vendor
     const publishedEbooks = await PublishedEbook.find({ vendorId })
       .select(
-        "publishId ebookId ebookTitle author publisher isbn language ebookCover salePrice makeAvailableForBorrow borrowFee borrowPeriod status dateListed createdAt updatedAt",
+        "publishId ebookId academicDiscipline ebookTitle author publisher isbn language ebookCover salePrice makeAvailableForBorrow borrowFee borrowPeriod status dateListed createdAt updatedAt",
       )
       .sort({ createdAt: -1 }); // Sort by newest first
 
@@ -838,11 +838,25 @@ export const getMyPublishedEbooks = async (req, res) => {
       });
     }
 
+    // Populate academic discipline names
+    const ebooksWithDisciplineNames = await Promise.all(
+      publishedEbooks.map(async (ebook) => {
+        const discipline = await AcademicDiscipline.findOne({
+          disciplineId: ebook.academicDiscipline,
+        });
+
+        return {
+          ...ebook.toObject(),
+          academicDisciplineName: discipline ? discipline.name : "Unknown",
+        };
+      }),
+    );
+
     return res.status(200).json({
       success: true,
       message: "Published eBooks fetched successfully.",
-      count: publishedEbooks.length,
-      data: publishedEbooks,
+      count: ebooksWithDisciplineNames.length,
+      data: ebooksWithDisciplineNames,
     });
   } catch (error) {
     console.error("Error fetching published eBooks:", error);
