@@ -1404,6 +1404,39 @@ export const verifyTwoFactorCode = async (req, res) => {
   }
 };
 
+// @desc    Get Two-Factor Authentication status and Inactive Timeout
+// @route   GET /api/store/vendor/twoFactorStatus
+// @access  Private (JWT)
+export const getTwoFactorStatus = async (req, res) => {
+  try {
+    const { id: vendorId } = req.vendor; // Get vendor ID from token
+
+    // Find vendor by ID
+    const vendor = await StoreVendor.findById(vendorId);
+    if (!vendor) {
+      return res.status(404).json({
+        success: false,
+        message: "Vendor account not found.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Security settings retrieved successfully.",
+      data: {
+        twoFactorEnabled: vendor.twoFactorEnabled || false,
+        inactiveTimeout: vendor.inactiveTimeout || 30,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching security settings:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error: " + error.message,
+    });
+  }
+};
+
 // @desc    Set inactive timeout setting
 // @route   PUT /api/store/vendor/inactiveTimeout
 // @access  Private (JWT)

@@ -23,6 +23,7 @@ import {
   changePassword,
   toggleTwoFactorAuth,
   verifyTwoFactorCode,
+  getTwoFactorStatus,
   setInactiveTimeout,
 } from "../../controllers/Store/Vendor/index.js";
 import { verifyToken } from "../../middleware/Tokens/index.js";
@@ -50,6 +51,7 @@ router.post("/testimonial", verifyToken, submitTestimonial);
 router.put("/changePassword", verifyToken, changePassword);
 router.post("/toggleTwoFactor", verifyToken, toggleTwoFactorAuth);
 router.post("/verifyTwoFactor", verifyToken, verifyTwoFactorCode);
+router.get("/twoFactorStatus", verifyToken, getTwoFactorStatus);
 router.put("/inactiveTimeout", verifyToken, setInactiveTimeout);
 router.post("/publishEbook", verifyToken, publishEbook);
 
