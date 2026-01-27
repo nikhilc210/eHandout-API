@@ -812,3 +812,43 @@ export const getAllLockedEbooks = async (req, res) => {
     });
   }
 };
+
+// @desc    Get all published eBooks for the logged-in vendor
+// @route   GET /api/store/vendor/myPublishedEbooks
+// @access  Private (JWT)
+export const getMyPublishedEbooks = async (req, res) => {
+  try {
+    const { id: vendorId } = req.vendor; // Get vendor ID from token
+
+    // Fetch all published eBooks for this vendor
+    const publishedEbooks = await PublishedEbook.find({ vendorId })
+      .select(
+        "publishId ebookId ebookTitle author publisher isbn language ebookCover salePrice makeAvailableForBorrow borrowFee borrowPeriod status dateListed createdAt updatedAt",
+      )
+      .sort({ createdAt: -1 }); // Sort by newest first
+
+    console.log(
+      `Found ${publishedEbooks.length} published eBooks for vendor ${vendorId}`,
+    );
+
+    if (!publishedEbooks || publishedEbooks.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "You haven't published any eBooks yet.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Published eBooks fetched successfully.",
+      count: publishedEbooks.length,
+      data: publishedEbooks,
+    });
+  } catch (error) {
+    console.error("Error fetching published eBooks:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error: " + error.message,
+    });
+  }
+};
