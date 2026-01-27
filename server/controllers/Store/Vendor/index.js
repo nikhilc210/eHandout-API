@@ -1149,8 +1149,8 @@ export const submitTestimonial = async (req, res) => {
       });
     }
 
-    // Check vendor account status
-    const vendor = await StoreVendor.findOne({ vendorId });
+    // Check vendor account status - use _id from token
+    const vendor = await StoreVendor.findById(vendorId);
     if (!vendor) {
       return res.status(404).json({
         success: false,
