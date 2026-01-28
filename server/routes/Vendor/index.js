@@ -51,7 +51,7 @@ router.put("/vendoreBookCover", verifyToken, updateeBookCover);
 router.get("/vendoreBookCover", verifyToken, getAlleBookCover);
 router.get("/vendoreBookCover/:coverId", verifyToken, geteBookCoverInformation);
 router.get("/lockedBookCovers", verifyToken, getAllLockedBookCovers);
-router.get("/academicDisciplines", verifyToken, getActiveAcademicDisciplines);
+router.get("/academicDisciplines", getActiveAcademicDisciplines);
 router.get("/lockedEbooks", verifyToken, getAllLockedEbooks);
 router.get("/myPublishedEbooks", verifyToken, getMyPublishedEbooks);
 router.get("/publishedEbook/:ebookId", verifyToken, getPublishedEbookById);
