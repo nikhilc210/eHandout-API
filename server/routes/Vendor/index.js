@@ -28,6 +28,8 @@ import {
   submitContactMessage,
   getVendorDashboard,
   getVendorTutorials,
+  submitConsultationRequest,
+  logoutVendor,
 } from "../../controllers/Store/Vendor/index.js";
 import { verifyToken } from "../../middleware/Tokens/index.js";
 
@@ -38,6 +40,8 @@ router.post("/resendOtp", resendStoreVendorOtp);
 router.post("/auth", storeVendorAuth);
 router.get("/dashboard", verifyToken, getVendorDashboard);
 router.get("/tutorials", verifyToken, getVendorTutorials);
+router.post("/consultation", verifyToken, submitConsultationRequest);
+router.post("/logout", verifyToken, logoutVendor);
 router.post("/vendorInformation", verifyToken, updateVendorInformation);
 router.get("/vendorInformation", verifyToken, getCurrentVendorInformation);
 router.post("/vendorBankInformation", verifyToken, updateVendorBankInformation);

@@ -12,6 +12,8 @@ import {
   VendorTestimonial,
   VendorContact,
   VendorTutorial,
+  VendorConsultation,
+  InvalidatedToken,
 } from "../../../models/Store/Vendor/index.js";
 import { AcademicDiscipline } from "../../../models/AcademicDiscipline/index.js";
 export const registerStoreVendor = async (req, res) => {
@@ -1339,6 +1341,48 @@ export const toggleTwoFactorAuth = async (req, res) => {
   }
 };
 
+// @desc    Logout vendor (invalidate current JWT)
+// @route   POST /api/store/vendor/logout
+// @access  Private (JWT)
+export const logoutVendor = async (req, res) => {
+  try {
+    const authHeader = req.headers["authorization"];
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res
+        .status(401)
+        .json({ success: false, message: "Access denied. No token provided." });
+    }
+
+    const token = authHeader.split(" ")[1];
+
+    // Decode token to get expiry
+    const decoded = jwt.decode(token);
+    let expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // default 7 days
+    if (decoded && decoded.exp) {
+      expiresAt = new Date(decoded.exp * 1000);
+    }
+
+    // Upsert into invalidated tokens collection
+    await InvalidatedToken.findOneAndUpdate(
+      { token },
+      { $set: { expiresAt } },
+      { upsert: true, new: true },
+    );
+
+    return res
+      .status(200)
+      .json({ success: true, message: "Logged out successfully." });
+  } catch (error) {
+    console.error("Error during logout:", error);
+    return res
+      .status(500)
+      .json({
+        success: false,
+        message: "Internal server error: " + error.message,
+      });
+  }
+};
+
 // @desc    Verify Two-Factor Authentication code
 // @route   POST /api/store/vendor/verifyTwoFactor
 // @access  Private (JWT)
@@ -1645,6 +1689,68 @@ export const getVendorTutorials = async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching vendor tutorials:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error: " + error.message,
+    });
+  }
+};
+
+// @desc    Submit a consultation request (free eBook publishing consultation)
+// @route   POST /api/store/vendor/consultation
+// @access  Private (JWT)
+export const submitConsultationRequest = async (req, res) => {
+  try {
+    const { id: vendorId } = req.vendor; // token contains Mongo _id
+    const { message, preferredContactMethod, phone } = req.body;
+
+    // Basic validation
+    if (!message || !message.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Message is required.",
+      });
+    }
+
+    // Find vendor to get email and custom vendorId
+    const vendor = await StoreVendor.findById(vendorId);
+    if (!vendor) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Vendor account not found." });
+    }
+
+    if (vendor.accountStatus === "Suspended") {
+      return res.status(403).json({
+        success: false,
+        message: "Your account is suspended. Cannot submit requests.",
+      });
+    }
+
+    // Create consultation request
+    const consultation = new VendorConsultation({
+      vendorId: vendor.vendorId || vendorId,
+      email: vendor.email,
+      phone: phone || `${vendor.phoneCode}${vendor.mobile}`,
+      preferredContactMethod: preferredContactMethod || "email",
+      message: message.trim(),
+      status: "Pending",
+    });
+
+    await consultation.save();
+
+    return res.status(201).json({
+      success: true,
+      message:
+        "Your request has been sent successfully. One of our staff will contact you shortly.",
+      data: {
+        id: consultation._id,
+        status: consultation.status,
+        createdAt: consultation.createdAt,
+      },
+    });
+  } catch (error) {
+    console.error("Error submitting consultation request:", error);
     return res.status(500).json({
       success: false,
       message: "Internal server error: " + error.message,

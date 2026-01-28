@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
+import { InvalidatedToken } from "../../models/Store/Vendor/index.js";
 
-export const verifyToken = (req, res, next) => {
+export const verifyToken = async (req, res, next) => {
   try {
     // Get token from Authorization header
     const authHeader = req.headers["authorization"];
@@ -13,6 +14,15 @@ export const verifyToken = (req, res, next) => {
     }
 
     const token = authHeader.split(" ")[1]; // Extract token
+
+    // Check blacklist
+    const blacklisted = await InvalidatedToken.findOne({ token });
+    if (blacklisted) {
+      return res.status(403).json({
+        success: false,
+        message: "Token has been logged out",
+      });
+    }
 
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);

@@ -231,6 +231,50 @@ const VendorTutorial = mongoose.model(
   "vendorTutorials",
 );
 
+// Schema for vendor consultation requests (free eBook publishing consultation)
+const vendorConsultationSchema = new mongoose.Schema(
+  {
+    vendorId: { type: String, required: true }, // can be custom vendorId or Mongo _id string
+    email: { type: String, required: true },
+    phone: { type: String },
+    preferredContactMethod: {
+      type: String,
+      enum: ["email", "phone"],
+      default: "email",
+    },
+    message: { type: String, required: true, maxlength: 2000 },
+    status: {
+      type: String,
+      enum: ["Pending", "Contacted", "Closed"],
+      default: "Pending",
+    },
+    respondedAt: { type: Date },
+    response: { type: String },
+  },
+  { timestamps: true },
+);
+
+const VendorConsultation = mongoose.model(
+  "VendorConsultation",
+  vendorConsultationSchema,
+  "vendorconsultations",
+);
+
+// Schema for invalidated JWT tokens (logout blacklist)
+const invalidatedTokenSchema = new mongoose.Schema(
+  {
+    token: { type: String, required: true, unique: true },
+    expiresAt: { type: Date, required: true },
+  },
+  { timestamps: true },
+);
+
+const InvalidatedToken = mongoose.model(
+  "InvalidatedToken",
+  invalidatedTokenSchema,
+  "invalidatedtokens",
+);
+
 export {
   StoreVendor,
   StoreVendorInformation,
@@ -241,4 +285,6 @@ export {
   VendorTestimonial,
   VendorContact,
   VendorTutorial,
+  VendorConsultation,
+  InvalidatedToken,
 };
