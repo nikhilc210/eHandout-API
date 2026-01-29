@@ -16,6 +16,115 @@ import {
   InvalidatedToken,
 } from "../../../models/Store/Vendor/index.js";
 import { AcademicDiscipline } from "../../../models/AcademicDiscipline/index.js";
+
+// @desc    Public: Get published eBooks filtered by academic discipline (only from Active vendor accounts)
+// @route   GET /api/lms/lockedPublishedEbooks?academicDiscipline=ID&page=1&limit=10
+// @access  Public
+export const getLockedPublishedEbooksPublic = async (req, res) => {
+  try {
+    const { academicDiscipline, page = 1, limit = 10 } = req.query;
+
+    // Build match stage
+    const matchStage = { status: "Active" };
+    if (academicDiscipline) {
+      matchStage.academicDiscipline = academicDiscipline;
+    }
+
+    const pageNum = Math.max(parseInt(page, 10) || 1, 1);
+    const perPage = Math.max(parseInt(limit, 10) || 10, 1);
+
+    // Aggregation: match published ebooks, lookup vendor and ensure vendor is Active
+    const pipeline = [
+      { $match: matchStage },
+      // Lookup vendor by comparing stringified _id to stored vendorId
+      {
+        $lookup: {
+          from: "storevendors",
+          let: { vid: "$vendorId" },
+          pipeline: [
+            { $match: { $expr: { $eq: [{ $toString: "$_id" }, "$$vid"] } } },
+            { $match: { accountStatus: "Active" } },
+            { $project: { _id: 1, vendorId: 1, accountStatus: 1 } },
+          ],
+          as: "vendorInfo",
+        },
+      },
+      // Only include ebooks where vendorInfo is not empty (i.e., vendor exists and is Active)
+      { $match: { vendorInfo: { $ne: [] } } },
+      // Sort newest first
+      { $sort: { createdAt: -1 } },
+      // Pagination
+      { $skip: (pageNum - 1) * perPage },
+      { $limit: perPage },
+      // Project fields to return
+      {
+        $project: {
+          _id: 1,
+          publishId: 1,
+          ebookId: 1,
+          academicDiscipline: 1,
+          ebookTitle: 1,
+          author: 1,
+          publisher: 1,
+          publishedDate: 1,
+          isbn: 1,
+          language: 1,
+          synopsis: 1,
+          ebookCover: 1,
+          ebookContent: 1,
+          salePrice: 1,
+          makeAvailableForBorrow: 1,
+          borrowFee: 1,
+          borrowPeriod: 1,
+          dateListed: 1,
+          vendorId: 1,
+        },
+      },
+    ];
+
+    const data = await PublishedEbook.aggregate(pipeline).allowDiskUse(true);
+
+    // total count (only for given discipline and active vendors)
+    const countPipeline = [
+      { $match: matchStage },
+      {
+        $lookup: {
+          from: "storevendors",
+          let: { vid: "$vendorId" },
+          pipeline: [
+            { $match: { $expr: { $eq: [{ $toString: "$_id" }, "$$vid"] } } },
+            { $match: { accountStatus: "Active" } },
+            { $project: { _id: 1 } },
+          ],
+          as: "vendorInfo",
+        },
+      },
+      { $match: { vendorInfo: { $ne: [] } } },
+      { $count: "total" },
+    ];
+
+    const countResult = await PublishedEbook.aggregate(countPipeline);
+    const total = countResult.length > 0 ? countResult[0].total : 0;
+
+    return res.status(200).json({
+      success: true,
+      message: "Published eBooks fetched successfully.",
+      page: pageNum,
+      limit: perPage,
+      total,
+      count: data.length,
+      data,
+    });
+  } catch (error) {
+    console.error("Error fetching public locked published eBooks:", error);
+    return res
+      .status(500)
+      .json({
+        success: false,
+        message: "Internal server error: " + error.message,
+      });
+  }
+};
 export const registerStoreVendor = async (req, res) => {
   console.log("Request body:", req.body); // <--- add this
 
@@ -1374,12 +1483,10 @@ export const logoutVendor = async (req, res) => {
       .json({ success: true, message: "Logged out successfully." });
   } catch (error) {
     console.error("Error during logout:", error);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        message: "Internal server error: " + error.message,
-      });
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error: " + error.message,
+    });
   }
 };
 

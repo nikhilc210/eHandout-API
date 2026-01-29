@@ -10,6 +10,7 @@ import {
 import uploadRoutes from "./routes/Files/index.js";
 import vendorInformation from "./routes/Vendor/index.js";
 import lmsRoutes from "./routes/LMS/index.js";
+import userRoutes from "./routes/User/index.js";
 import managerRoutes from "./routes/Manager/index.js";
 import cors from "cors";
 
@@ -26,6 +27,7 @@ app.use(express.json({ limit: "100mb" })); // handles JSON body
 app.use("/api/file/", uploadRoutes);
 app.use("/api/store/vendor", vendorInformation);
 app.use("/api/lms", lmsRoutes); //this route will use to create LMS, Student and Lecturer Account
+app.use("/api/user", userRoutes); // public user routes
 app.use("/api/manager", managerRoutes);
 
 app.get("/", (req, res) => {
@@ -38,6 +40,6 @@ app.listen(PORT, "0.0.0.0", () => {
   console.log(
     `🚀 Server running in ${
       process.env.NODE_ENV || "production"
-    } mode on port ${PORT}`
+    } mode on port ${PORT}`,
   );
 });
