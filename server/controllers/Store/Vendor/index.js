@@ -223,14 +223,110 @@ export const getLockedEbooksPublic = async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching locked published eBooks:", error);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        message: "Internal server error: " + error.message,
-      });
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error: " + error.message,
+    });
   }
 };
+
+// @desc    Public: Get single published eBook by ID (only from Active vendor accounts)
+// @route   GET /api/user/publishedEbook/:id
+// @access  Public
+export const getPublishedEbookByIdPublic = async (req, res) => {
+  try {
+    const { id } = req.params; // eBook _id
+
+    // Find the eBook by MongoDB _id
+    const ebook = await PublishedEbook.findById(id);
+
+    if (!ebook) {
+      return res.status(404).json({
+        success: false,
+        message: "eBook not found.",
+      });
+    }
+
+    // Check if the eBook's vendor account is Active
+    const vendor = await StoreVendor.findById(ebook.vendorId);
+    if (!vendor || vendor.accountStatus !== "Active") {
+      return res.status(404).json({
+        success: false,
+        message: "eBook is not available.",
+      });
+    }
+
+    // Lookup academic discipline name (multi-level fallback)
+    let discipline = await AcademicDiscipline.findById(
+      ebook.academicDiscipline,
+    );
+    if (!discipline) {
+      discipline = await AcademicDiscipline.findOne({
+        disciplineId: ebook.academicDiscipline,
+      });
+    }
+    if (!discipline) {
+      discipline = await AcademicDiscipline.findOne({
+        name: { $regex: new RegExp(`^${ebook.academicDiscipline}$`, "i") },
+      });
+    }
+
+    // Prepare response with discipline name and all required details
+    const ebookDetails = {
+      _id: ebook._id,
+      publishId: ebook.publishId,
+      ebookId: ebook.ebookId,
+      ebookTitle: ebook.ebookTitle,
+      author: ebook.author,
+      publisher: ebook.publisher,
+      publishedDate: ebook.publishedDate,
+      edition: ebook.edition || "N/A",
+      series: ebook.series || "N/A",
+      isbn: ebook.isbn,
+      language: ebook.language,
+      synopsis: ebook.synopsis,
+      aboutAuthor: ebook.aboutAuthor,
+      academicDiscipline: ebook.academicDiscipline,
+      academicDisciplineName: discipline
+        ? discipline.name
+        : ebook.academicDiscipline,
+      academicRecommendation: ebook.academicRecommendation,
+      publicDomain: ebook.publicDomain,
+      ebookCover: ebook.ebookCover,
+      ebookContent: ebook.ebookContent,
+      salePrice: ebook.salePrice,
+      makeAvailableForBorrow: ebook.makeAvailableForBorrow,
+      borrowFee: ebook.borrowFee,
+      borrowPeriod: ebook.borrowPeriod,
+      status: ebook.status,
+      dateListed: ebook.dateListed,
+      createdAt: ebook.createdAt,
+      updatedAt: ebook.updatedAt,
+      // Additional computed fields for the frontend
+      version: "v1.0", // You can make this dynamic if needed
+      drmProtection:
+        ebook.publicDomain === "no" ? "Yes - No Copying & Sharing" : "No",
+      // Price formatting for display
+      formattedSalePrice: `₦${ebook.salePrice.toLocaleString()}`,
+      formattedBorrowFee: ebook.borrowFee
+        ? `₦${ebook.borrowFee.toLocaleString()}`
+        : null,
+    };
+
+    return res.status(200).json({
+      success: true,
+      message: "eBook details fetched successfully.",
+      data: ebookDetails,
+    });
+  } catch (error) {
+    console.error("Error fetching public eBook details:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error: " + error.message,
+    });
+  }
+};
+
 export const registerStoreVendor = async (req, res) => {
   console.log("Request body:", req.body); // <--- add this
 
