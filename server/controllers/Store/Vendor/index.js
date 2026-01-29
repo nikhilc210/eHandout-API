@@ -1072,11 +1072,51 @@ export const getActiveAcademicDisciplines = async (req, res) => {
       });
     }
 
+    // Get published book counts for each discipline
+    const disciplinesWithBookCount = await Promise.all(
+      activeDisciplines.map(async (discipline) => {
+        // Count published books for this discipline (only from Active vendor accounts)
+        const bookCount = await PublishedEbook.aggregate([
+          {
+            $match: {
+              academicDiscipline: discipline._id.toString(),
+              status: "Active",
+            },
+          },
+          {
+            $lookup: {
+              from: "storevendors",
+              let: { vid: "$vendorId" },
+              pipeline: [
+                {
+                  $match: { $expr: { $eq: [{ $toString: "$_id" }, "$$vid"] } },
+                },
+                { $match: { accountStatus: "Active" } },
+                { $project: { _id: 1 } },
+              ],
+              as: "vendorInfo",
+            },
+          },
+          { $match: { vendorInfo: { $ne: [] } } },
+          { $count: "total" },
+        ]);
+
+        const publishedBooksCount =
+          bookCount.length > 0 ? bookCount[0].total : 0;
+
+        return {
+          ...discipline.toObject(),
+          publishedBooksCount,
+        };
+      }),
+    );
+
     return res.status(200).json({
       success: true,
-      message: "Active academic disciplines fetched successfully.",
-      count: activeDisciplines.length,
-      data: activeDisciplines,
+      message:
+        "Active academic disciplines with book counts fetched successfully.",
+      count: disciplinesWithBookCount.length,
+      data: disciplinesWithBookCount,
     });
   } catch (error) {
     console.error("Error fetching academic disciplines:", error);
