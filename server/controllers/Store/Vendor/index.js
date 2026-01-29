@@ -117,6 +117,112 @@ export const getLockedPublishedEbooksPublic = async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching public locked published eBooks:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error: " + error.message,
+    });
+  }
+};
+
+// @desc    Public: Get locked published eBooks (not available for borrow) filtered by academic discipline
+// @route   GET /api/user/lockedEbooks?academicDiscipline=ID&page=1&limit=10
+// @access  Public
+export const getLockedEbooksPublic = async (req, res) => {
+  try {
+    const {
+      academicDiscipline,
+      page = 1,
+      limit = 10,
+      sort = "dateListed",
+    } = req.query;
+
+    const matchStage = {
+      status: "Active",
+      makeAvailableForBorrow: { $ne: true },
+    };
+    if (academicDiscipline) matchStage.academicDiscipline = academicDiscipline;
+
+    const pageNum = Math.max(parseInt(page, 10) || 1, 1);
+    const perPage = Math.max(parseInt(limit, 10) || 10, 1);
+
+    // ensure vendor account is Active via lookup
+    const pipeline = [
+      { $match: matchStage },
+      {
+        $lookup: {
+          from: "storevendors",
+          let: { vid: "$vendorId" },
+          pipeline: [
+            { $match: { $expr: { $eq: [{ $toString: "$_id" }, "$$vid"] } } },
+            { $match: { accountStatus: "Active" } },
+            { $project: { _id: 1, vendorId: 1, accountStatus: 1 } },
+          ],
+          as: "vendorInfo",
+        },
+      },
+      { $match: { vendorInfo: { $ne: [] } } },
+      // sort
+      { $sort: sort === "dateListed" ? { dateListed: -1 } : { createdAt: -1 } },
+      { $skip: (pageNum - 1) * perPage },
+      { $limit: perPage },
+      {
+        $project: {
+          _id: 1,
+          publishId: 1,
+          ebookId: 1,
+          academicDiscipline: 1,
+          ebookTitle: 1,
+          author: 1,
+          publisher: 1,
+          publishedDate: 1,
+          isbn: 1,
+          language: 1,
+          synopsis: 1,
+          ebookCover: 1,
+          salePrice: 1,
+          makeAvailableForBorrow: 1,
+          borrowFee: 1,
+          borrowPeriod: 1,
+          dateListed: 1,
+          vendorId: 1,
+        },
+      },
+    ];
+
+    const data = await PublishedEbook.aggregate(pipeline).allowDiskUse(true);
+
+    const countPipeline = [
+      { $match: matchStage },
+      {
+        $lookup: {
+          from: "storevendors",
+          let: { vid: "$vendorId" },
+          pipeline: [
+            { $match: { $expr: { $eq: [{ $toString: "$_id" }, "$$vid"] } } },
+            { $match: { accountStatus: "Active" } },
+            { $project: { _id: 1 } },
+          ],
+          as: "vendorInfo",
+        },
+      },
+      { $match: { vendorInfo: { $ne: [] } } },
+      { $count: "total" },
+    ];
+
+    const countResult = await PublishedEbook.aggregate(countPipeline);
+    const total = countResult.length > 0 ? countResult[0].total : 0;
+
+    return res.status(200).json({
+      success: true,
+      message: "Locked published eBooks fetched successfully.",
+      page: pageNum,
+      limit: perPage,
+      total,
+      count: data.length,
+      data,
+    });
+  } catch (error) {
+    console.error("Error fetching locked published eBooks:", error);
     return res
       .status(500)
       .json({
