@@ -392,3 +392,28 @@ export const resendOtp = async (req, res) => {
 };
 
 export default { loginGenerateOtp, verifyOtp };
+
+// GET /api/user/auth/me
+// Protected: requires Authorization: Bearer <token>
+export const getProfile = async (req, res) => {
+  try {
+    // verifyToken middleware attaches vendor (id/email) to req.vendor
+    const decoded = req.vendor;
+    if (!decoded || !decoded.id) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    const user = await User.findById(decoded.id).select(
+      "-password -otp -otpExpiry",
+    );
+    if (!user)
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+
+    return res.status(200).json({ success: true, data: user });
+  } catch (error) {
+    console.error("Error in getProfile:", error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};

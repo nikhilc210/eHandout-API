@@ -4,10 +4,12 @@ import {
   getLockedEbooksPublic,
   getPublishedEbookByIdPublic,
 } from "../../controllers/Store/Vendor/index.js";
+import { verifyToken } from "../../middleware/Tokens/index.js";
 import {
   loginGenerateOtp,
   verifyOtp,
   resendOtp,
+  getProfile,
 } from "../../controllers/User/index.js";
 
 const router = express.Router();
@@ -23,5 +25,7 @@ router.get("/publishedEbook/:id", getPublishedEbookByIdPublic);
 router.post("/auth/login", loginGenerateOtp); // provide eliteId/shareId/email + password => returns otp
 router.post("/auth/verify", verifyOtp); // provide eliteId/shareId/email + otp => returns JWT token
 router.post("/auth/resend", resendOtp); // provide eliteId/shareId/email => returns new otp
+// Protected route to fetch logged-in user profile
+router.get("/auth/me", verifyToken, getProfile);
 
 export default router;
