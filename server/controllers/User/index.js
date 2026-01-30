@@ -31,13 +31,38 @@ export const loginGenerateOtp = async (req, res) => {
       });
     }
 
-    // Build query
-    let query = {};
-    if (eliteIdInput) query = { eliteId: eliteIdInput };
-    else if (shareIdInput) query = { shareId: shareIdInput };
-    else if (emailInput) query = { email: emailInput };
+    // Build a flexible query that tries several common field names used in `student` docs
+    const orTerms = [];
+    if (eliteIdInput) {
+      orTerms.push(
+        { eliteId: eliteIdInput },
+        { elite_id: eliteIdInput },
+        { eliteid: eliteIdInput },
+      );
+    }
+    if (shareIdInput) {
+      orTerms.push(
+        { shareId: shareIdInput },
+        { share_id: shareIdInput },
+        { shareid: shareIdInput },
+        { studentId: shareIdInput },
+      );
+    }
+    if (emailInput) {
+      orTerms.push(
+        { email: emailInput },
+        { emailAddress: emailInput },
+        { email_address: emailInput },
+      );
+    }
 
-    console.log("loginGenerateOtp - identifier query:", query);
+    let query;
+    if (orTerms.length === 1) query = orTerms[0];
+    else if (orTerms.length > 1) query = { $or: orTerms };
+    else query = {};
+
+    console.log("loginGenerateOtp - request body:", req.body);
+    console.log("loginGenerateOtp - constructed query:", JSON.stringify(query));
 
     const user = await User.findOne(query);
     if (!user) {
@@ -94,12 +119,38 @@ export const verifyOtp = async (req, res) => {
       });
     }
 
-    let query = {};
-    if (eliteIdInput) query = { eliteId: eliteIdInput };
-    else if (shareIdInput) query = { shareId: shareIdInput };
-    else if (emailInput) query = { email: emailInput };
+    // Build flexible $or query for common student fields
+    const orTerms = [];
+    if (eliteIdInput) {
+      orTerms.push(
+        { eliteId: eliteIdInput },
+        { elite_id: eliteIdInput },
+        { eliteid: eliteIdInput },
+      );
+    }
+    if (shareIdInput) {
+      orTerms.push(
+        { shareId: shareIdInput },
+        { share_id: shareIdInput },
+        { shareid: shareIdInput },
+        { studentId: shareIdInput },
+      );
+    }
+    if (emailInput) {
+      orTerms.push(
+        { email: emailInput },
+        { emailAddress: emailInput },
+        { email_address: emailInput },
+      );
+    }
 
-    console.log("verifyOtp - identifier query:", query);
+    let query;
+    if (orTerms.length === 1) query = orTerms[0];
+    else if (orTerms.length > 1) query = { $or: orTerms };
+    else query = {};
+
+    console.log("verifyOtp - request body:", req.body);
+    console.log("verifyOtp - constructed query:", JSON.stringify(query));
 
     const user = await User.findOne(query);
     if (!user) {
