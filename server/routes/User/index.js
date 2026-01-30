@@ -4,6 +4,7 @@ import {
   getLockedEbooksPublic,
   getPublishedEbookByIdPublic,
 } from "../../controllers/Store/Vendor/index.js";
+import { loginGenerateOtp, verifyOtp } from "../../controllers/User/index.js";
 
 const router = express.Router();
 
@@ -13,5 +14,9 @@ router.get("/lockedPublishedEbooks", getLockedPublishedEbooksPublic);
 router.get("/lockedEbooks", getLockedEbooksPublic);
 // Public route to get single eBook details by ID
 router.get("/publishedEbook/:id", getPublishedEbookByIdPublic);
+
+// User auth routes (OTP based)
+router.post("/auth/login", loginGenerateOtp); // provide eliteId/shareId/email + password => returns otp
+router.post("/auth/verify", verifyOtp); // provide eliteId/shareId/email + otp => returns JWT token
 
 export default router;
