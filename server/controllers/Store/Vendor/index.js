@@ -27,6 +27,81 @@ const escapeForRegex = (str) => {
 //           Only returns eBooks whose vendor account is Active
 // @route   GET /api/user/publishedEbooks/search?q=keyword&page=1&limit=10
 // @access  Public
+/**
+  @openapi
+  /api/user/publishedEbooks/search:
+    get:
+      tags:
+        - PublishedEbooks
+      summary: Search published eBooks (title, author, isbn, ebookId, discipline)
+      description: Returns published eBooks that match the query. Only eBooks from Active vendors are returned.
+      parameters:
+        - in: query
+          name: q
+          schema:
+            type: string
+          required: true
+          description: Search keyword
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Page number (pagination)
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+          description: Items per page
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  q:
+                    type: string
+                  page:
+                    type: integer
+                  limit:
+                    type: integer
+                  total:
+                    type: integer
+                  count:
+                    type: integer
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        _id:
+                          type: string
+                        publishId:
+                          type: string
+                        ebookId:
+                          type: string
+                        ebookTitle:
+                          type: string
+                        author:
+                          type: string
+                        isbn:
+                          type: string
+                        academicDiscipline:
+                          type: string
+                        ebookCover:
+                          type: string
+                        salePrice:
+                          type: number
+        '400':
+          description: Missing or invalid query
+        '500':
+          description: Internal server error
+*/
 export const getPublishedEbookSearch = async (req, res) => {
   try {
     const { q, page = 1, limit = 10 } = req.query;
@@ -144,6 +219,69 @@ export const getPublishedEbookSearch = async (req, res) => {
 //           Returns top matches ranked by simple relevance and only from Active vendors
 // @route   GET /api/user/publishedEbooks/autocomplete?q=keyword&limit=10
 // @access  Public
+/**
+  @openapi
+  /api/user/publishedEbooks/autocomplete:
+    get:
+      tags:
+        - PublishedEbooks
+      summary: Autocomplete published eBooks for quick search
+      description: Returns top matching eBooks for incremental search. Only eBooks from Active vendors are returned.
+      parameters:
+        - in: query
+          name: q
+          schema:
+            type: string
+          required: true
+          description: Partial search keyword
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+          description: Maximum number of results to return
+      responses:
+        '200':
+          description: Autocomplete results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  q:
+                    type: string
+                  count:
+                    type: integer
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        _id:
+                          type: string
+                        ebookTitle:
+                          type: string
+                        author:
+                          type: string
+                        isbn:
+                          type: string
+                        ebookId:
+                          type: string
+                        academicDiscipline:
+                          type: string
+                        ebookCover:
+                          type: string
+                        salePrice:
+                          type: number
+                        score:
+                          type: number
+        '400':
+          description: Missing or invalid query
+        '500':
+          description: Internal server error
+*/
 export const getPublishedEbookAutocomplete = async (req, res) => {
   try {
     const { q, limit = 10 } = req.query;
@@ -283,22 +421,18 @@ export const getPublishedEbookAutocomplete = async (req, res) => {
 
     const results = await PublishedEbook.aggregate(pipeline).allowDiskUse(true);
 
-    return res
-      .status(200)
-      .json({
-        success: true,
-        q: keyword,
-        count: results.length,
-        data: results,
-      });
+    return res.status(200).json({
+      success: true,
+      q: keyword,
+      count: results.length,
+      data: results,
+    });
   } catch (error) {
     console.error("Error in autocomplete search:", error);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        message: "Internal server error: " + error.message,
-      });
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error: " + error.message,
+    });
   }
 };
 // @desc    Public: Get published eBooks filtered by academic discipline (only from Active vendor accounts)
@@ -808,6 +942,7 @@ export const updateVendorInformation = async (req, res) => {
       dateOfIssue,
       expiryDate,
       identityFile,
+      taxResidencyCountry,
     } = req.body;
     if (
       !accountType ||
@@ -840,6 +975,7 @@ export const updateVendorInformation = async (req, res) => {
         dateOfIssue,
         expiryDate,
         identityFile,
+        taxResidencyCountry,
       });
       vendorInfo.save();
       return res.status(200).json({

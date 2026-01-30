@@ -38,6 +38,7 @@ const storeVendorInformationSchema = new mongoose.Schema(
       enum: ["Publisher", "Author"],
       required: true,
     },
+    taxResidencyCountry: { type: String, required: false },
     vendorName: { type: String, required: true },
     tin: { type: String, required: false },
     address: { type: String, required: true },
