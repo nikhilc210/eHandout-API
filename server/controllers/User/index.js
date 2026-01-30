@@ -2,26 +2,42 @@ import bcrypt from "bcryptjs";
 import { User } from "../../models/User/index.js";
 import { generateOtp, otpExpiry, generateToken } from "../../utils/index.js";
 
+// Helper to read multiple possible identifier keys
+const readIdentifiers = (body) => {
+  const eliteId =
+    body.eliteId || body.elite_id || body.eliteid || body.eliteID || null;
+  const shareId =
+    body.shareId || body.share_id || body.shareid || body.shareID || null;
+  const email = body.email || null;
+  return { eliteId, shareId, email };
+};
+
 // POST /api/user/auth/login
 // Body: { eliteId? shareId? email?, password }
 // Generates an OTP, stores it on the user document with expiry and returns the OTP in response
 export const loginGenerateOtp = async (req, res) => {
   try {
-    const { eliteId, shareId, email, password } = req.body || {};
+    const { password } = req.body || {};
+    const { eliteId, shareId, email } = readIdentifiers(req.body || {});
 
-    if (!password || (!eliteId && !shareId && !email)) {
+    const emailInput = email ? email.toString().toLowerCase().trim() : null;
+    const eliteIdInput = eliteId ? eliteId.toString().trim() : null;
+    const shareIdInput = shareId ? shareId.toString().trim() : null;
+
+    if (!password || (!eliteIdInput && !shareIdInput && !emailInput)) {
       return res.status(400).json({
         success: false,
         message: "Provide identifier (eliteId/shareId/email) and password",
       });
     }
 
-    // Build query based on provided identifier
-    const query = eliteId
-      ? { eliteId }
-      : shareId
-        ? { shareId }
-        : { email: email && email.toLowerCase() };
+    // Build query
+    let query = {};
+    if (eliteIdInput) query = { eliteId: eliteIdInput };
+    else if (shareIdInput) query = { shareId: shareIdInput };
+    else if (emailInput) query = { email: emailInput };
+
+    console.log("loginGenerateOtp - identifier query:", query);
 
     const user = await User.findOne(query);
     if (!user) {
@@ -30,7 +46,7 @@ export const loginGenerateOtp = async (req, res) => {
         .json({ success: false, message: "User not found" });
     }
 
-    // Verify password
+    // Verify password (assumes stored hashed)
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res
@@ -40,13 +56,13 @@ export const loginGenerateOtp = async (req, res) => {
 
     // Generate OTP and expiry
     const otp = generateOtp();
-    const expiryTs = otpExpiry(); // returns ms timestamp
+    const expiryTs = otpExpiry(); // ms timestamp
 
     user.otp = otp;
     user.otpExpiry = new Date(expiryTs);
     await user.save();
 
-    // NOTE: per request, return OTP in response. In production you may want to send via SMS/Email and not expose it.
+    // Return OTP in response (per request)
     return res.status(200).json({
       success: true,
       message: "OTP generated and saved. It will expire in a short time.",
@@ -64,20 +80,26 @@ export const loginGenerateOtp = async (req, res) => {
 // Verifies OTP and returns a JWT auth token
 export const verifyOtp = async (req, res) => {
   try {
-    const { eliteId, shareId, email, otp } = req.body || {};
+    const { otp } = req.body || {};
+    const { eliteId, shareId, email } = readIdentifiers(req.body || {});
 
-    if (!otp || (!eliteId && !shareId && !email)) {
+    const emailInput = email ? email.toString().toLowerCase().trim() : null;
+    const eliteIdInput = eliteId ? eliteId.toString().trim() : null;
+    const shareIdInput = shareId ? shareId.toString().trim() : null;
+
+    if (!otp || (!eliteIdInput && !shareIdInput && !emailInput)) {
       return res.status(400).json({
         success: false,
         message: "Provide identifier (eliteId/shareId/email) and otp",
       });
     }
 
-    const query = eliteId
-      ? { eliteId }
-      : shareId
-        ? { shareId }
-        : { email: email && email.toLowerCase() };
+    let query = {};
+    if (eliteIdInput) query = { eliteId: eliteIdInput };
+    else if (shareIdInput) query = { shareId: shareIdInput };
+    else if (emailInput) query = { email: emailInput };
+
+    console.log("verifyOtp - identifier query:", query);
 
     const user = await User.findOne(query);
     if (!user) {
