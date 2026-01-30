@@ -17,6 +17,290 @@ import {
 } from "../../../models/Store/Vendor/index.js";
 import { AcademicDiscipline } from "../../../models/AcademicDiscipline/index.js";
 
+// helper to escape regex special chars for user-provided queries
+const escapeForRegex = (str) => {
+  if (!str) return "";
+  return String(str).replace(/[.*+?^${}()|[\\]\\]/g, "\\$&");
+};
+
+// @desc    Public: Search published eBooks by title/author/isbn/ebookId/discipline
+//           Only returns eBooks whose vendor account is Active
+// @route   GET /api/user/publishedEbooks/search?q=keyword&page=1&limit=10
+// @access  Public
+export const getPublishedEbookSearch = async (req, res) => {
+  try {
+    const { q, page = 1, limit = 10 } = req.query;
+    if (!q || String(q).trim().length < 1) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Please provide a search query 'q'" });
+    }
+
+    const keyword = String(q).trim();
+    const rx = new RegExp(escapeForRegex(keyword), "i");
+
+    const pageNum = Math.max(parseInt(page, 10) || 1, 1);
+    const perPage = Math.max(parseInt(limit, 10) || 10, 1);
+
+    // match published ebooks with status Active and matching any of the searchable fields
+    const matchStage = {
+      status: "Active",
+      $or: [
+        { ebookTitle: { $regex: rx } },
+        { author: { $regex: rx } },
+        { isbn: { $regex: rx } },
+        { ebookId: { $regex: rx } },
+        { academicDiscipline: { $regex: rx } },
+      ],
+    };
+
+    const pipeline = [
+      { $match: matchStage },
+      {
+        $lookup: {
+          from: "storevendors",
+          let: { vid: "$vendorId" },
+          pipeline: [
+            { $match: { $expr: { $eq: [{ $toString: "$_id" }, "$$vid"] } } },
+            { $match: { accountStatus: "Active" } },
+            { $project: { _id: 1, vendorId: 1, accountStatus: 1 } },
+          ],
+          as: "vendorInfo",
+        },
+      },
+      { $match: { vendorInfo: { $ne: [] } } },
+      { $sort: { createdAt: -1 } },
+      { $skip: (pageNum - 1) * perPage },
+      { $limit: perPage },
+      {
+        $project: {
+          _id: 1,
+          publishId: 1,
+          ebookId: 1,
+          academicDiscipline: 1,
+          ebookTitle: 1,
+          author: 1,
+          publisher: 1,
+          publishedDate: 1,
+          isbn: 1,
+          language: 1,
+          synopsis: 1,
+          ebookCover: 1,
+          ebookContent: 1,
+          salePrice: 1,
+          makeAvailableForBorrow: 1,
+          borrowFee: 1,
+          borrowPeriod: 1,
+          dateListed: 1,
+          vendorId: 1,
+        },
+      },
+    ];
+
+    const data = await PublishedEbook.aggregate(pipeline).allowDiskUse(true);
+
+    // count
+    const countPipeline = [
+      { $match: matchStage },
+      {
+        $lookup: {
+          from: "storevendors",
+          let: { vid: "$vendorId" },
+          pipeline: [
+            { $match: { $expr: { $eq: [{ $toString: "$_id" }, "$$vid"] } } },
+            { $match: { accountStatus: "Active" } },
+            { $project: { _id: 1 } },
+          ],
+          as: "vendorInfo",
+        },
+      },
+      { $match: { vendorInfo: { $ne: [] } } },
+      { $count: "total" },
+    ];
+
+    const countResult = await PublishedEbook.aggregate(countPipeline);
+    const total = countResult.length > 0 ? countResult[0].total : 0;
+
+    return res.status(200).json({
+      success: true,
+      message: "Search results",
+      q: keyword,
+      page: pageNum,
+      limit: perPage,
+      total,
+      count: data.length,
+      data,
+    });
+  } catch (error) {
+    console.error("Error searching published eBooks:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error: " + error.message,
+    });
+  }
+};
+
+// @desc    Public: Autocomplete / quick search for published eBooks (compact fields)
+//           Returns top matches ranked by simple relevance and only from Active vendors
+// @route   GET /api/user/publishedEbooks/autocomplete?q=keyword&limit=10
+// @access  Public
+export const getPublishedEbookAutocomplete = async (req, res) => {
+  try {
+    const { q, limit = 10 } = req.query;
+    if (!q || String(q).trim().length < 1) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Please provide a search query 'q'" });
+    }
+
+    const keyword = String(q).trim();
+    const escaped = escapeForRegex(keyword);
+
+    const top = Math.max(parseInt(limit, 10) || 10, 1);
+
+    // Build aggregation: compute simple relevance score, ensure vendor is active, then return compact fields
+    const pipeline = [
+      { $match: { status: "Active" } },
+      // compute score using regexMatch expressions
+      {
+        $addFields: {
+          score: {
+            $add: [
+              {
+                $cond: [
+                  {
+                    $regexMatch: {
+                      input: "$ebookTitle",
+                      regex: `^${escaped}`,
+                      options: "i",
+                    },
+                  },
+                  100,
+                  0,
+                ],
+              },
+              {
+                $cond: [
+                  {
+                    $regexMatch: {
+                      input: "$ebookTitle",
+                      regex: escaped,
+                      options: "i",
+                    },
+                  },
+                  50,
+                  0,
+                ],
+              },
+              {
+                $cond: [
+                  {
+                    $regexMatch: {
+                      input: "$author",
+                      regex: escaped,
+                      options: "i",
+                    },
+                  },
+                  30,
+                  0,
+                ],
+              },
+              {
+                $cond: [
+                  {
+                    $regexMatch: {
+                      input: "$isbn",
+                      regex: `^${escaped}$`,
+                      options: "i",
+                    },
+                  },
+                  90,
+                  0,
+                ],
+              },
+              {
+                $cond: [
+                  {
+                    $regexMatch: {
+                      input: "$ebookId",
+                      regex: `^${escaped}$`,
+                      options: "i",
+                    },
+                  },
+                  95,
+                  0,
+                ],
+              },
+              {
+                $cond: [
+                  {
+                    $regexMatch: {
+                      input: "$academicDiscipline",
+                      regex: `^${escaped}$`,
+                      options: "i",
+                    },
+                  },
+                  20,
+                  0,
+                ],
+              },
+            ],
+          },
+        },
+      },
+      // filter to items that matched something (score > 0)
+      { $match: { score: { $gt: 0 } } },
+      // ensure vendor is active
+      {
+        $lookup: {
+          from: "storevendors",
+          let: { vid: "$vendorId" },
+          pipeline: [
+            { $match: { $expr: { $eq: [{ $toString: "$_id" }, "$$vid"] } } },
+            { $match: { accountStatus: "Active" } },
+            { $project: { _id: 1 } },
+          ],
+          as: "vendorInfo",
+        },
+      },
+      { $match: { vendorInfo: { $ne: [] } } },
+      { $sort: { score: -1, createdAt: -1 } },
+      { $limit: top },
+      {
+        $project: {
+          _id: 1,
+          ebookTitle: 1,
+          author: 1,
+          isbn: 1,
+          ebookId: 1,
+          academicDiscipline: 1,
+          ebookCover: 1,
+          salePrice: 1,
+          score: 1,
+        },
+      },
+    ];
+
+    const results = await PublishedEbook.aggregate(pipeline).allowDiskUse(true);
+
+    return res
+      .status(200)
+      .json({
+        success: true,
+        q: keyword,
+        count: results.length,
+        data: results,
+      });
+  } catch (error) {
+    console.error("Error in autocomplete search:", error);
+    return res
+      .status(500)
+      .json({
+        success: false,
+        message: "Internal server error: " + error.message,
+      });
+  }
+};
 // @desc    Public: Get published eBooks filtered by academic discipline (only from Active vendor accounts)
 // @route   GET /api/lms/lockedPublishedEbooks?academicDiscipline=ID&page=1&limit=10
 // @access  Public

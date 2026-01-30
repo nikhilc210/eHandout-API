@@ -4,6 +4,8 @@ import {
   getLockedEbooksPublic,
   getPublishedEbookByIdPublic,
 } from "../../controllers/Store/Vendor/index.js";
+import { getPublishedEbookSearch } from "../../controllers/Store/Vendor/index.js";
+import { getPublishedEbookAutocomplete } from "../../controllers/Store/Vendor/index.js";
 import { verifyToken } from "../../middleware/Tokens/index.js";
 import {
   loginGenerateOtp,
@@ -32,6 +34,10 @@ router.get("/publishedEbook/:id", getPublishedEbookByIdPublic);
 // Student tutorials (public)
 router.get("/tutorials", getStudentTutorials);
 router.get("/tutorials/:id", getStudentTutorialById);
+
+// Published eBook search (public) - only from Active vendors
+router.get("/publishedEbooks/search", getPublishedEbookSearch);
+router.get("/publishedEbooks/autocomplete", getPublishedEbookAutocomplete);
 
 // User auth routes (OTP based)
 router.post("/auth/login", loginGenerateOtp); // provide eliteId/shareId/email + password => returns otp
