@@ -4,7 +4,11 @@ import {
   getLockedEbooksPublic,
   getPublishedEbookByIdPublic,
 } from "../../controllers/Store/Vendor/index.js";
-import { loginGenerateOtp, verifyOtp } from "../../controllers/User/index.js";
+import {
+  loginGenerateOtp,
+  verifyOtp,
+  resendOtp,
+} from "../../controllers/User/index.js";
 
 const router = express.Router();
 
@@ -18,5 +22,6 @@ router.get("/publishedEbook/:id", getPublishedEbookByIdPublic);
 // User auth routes (OTP based)
 router.post("/auth/login", loginGenerateOtp); // provide eliteId/shareId/email + password => returns otp
 router.post("/auth/verify", verifyOtp); // provide eliteId/shareId/email + otp => returns JWT token
+router.post("/auth/resend", resendOtp); // provide eliteId/shareId/email => returns new otp
 
 export default router;

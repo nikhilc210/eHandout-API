@@ -12,6 +12,11 @@ const readIdentifiers = (body) => {
   return { eliteId, shareId, email };
 };
 
+// Escape regex special chars
+const escapeRegex = (str) => {
+  return String(str).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+};
+
 // POST /api/user/auth/login
 // Body: { eliteId? shareId? email?, password }
 // Generates an OTP, stores it on the user document with expiry and returns the OTP in response
@@ -64,7 +69,46 @@ export const loginGenerateOtp = async (req, res) => {
     console.log("loginGenerateOtp - request body:", req.body);
     console.log("loginGenerateOtp - constructed query:", JSON.stringify(query));
 
-    const user = await User.findOne(query);
+    let user = await User.findOne(query);
+    if (!user && (eliteIdInput || shareIdInput || emailInput)) {
+      const regexTerms = [];
+      if (eliteIdInput) {
+        regexTerms.push({
+          eliteId: new RegExp(`^${escapeRegex(eliteIdInput)}$`, "i"),
+        });
+        regexTerms.push({
+          elite_id: new RegExp(`^${escapeRegex(eliteIdInput)}$`, "i"),
+        });
+      }
+      if (shareIdInput) {
+        regexTerms.push({
+          shareId: new RegExp(`^${escapeRegex(shareIdInput)}$`, "i"),
+        });
+        regexTerms.push({
+          share_id: new RegExp(`^${escapeRegex(shareIdInput)}$`, "i"),
+        });
+        regexTerms.push({
+          studentId: new RegExp(`^${escapeRegex(shareIdInput)}$`, "i"),
+        });
+      }
+      if (emailInput) {
+        regexTerms.push({
+          email: new RegExp(`^${escapeRegex(emailInput)}$`, "i"),
+        });
+        regexTerms.push({
+          emailAddress: new RegExp(`^${escapeRegex(emailInput)}$`, "i"),
+        });
+      }
+      if (regexTerms.length > 0) {
+        const fallbackQuery =
+          regexTerms.length === 1 ? regexTerms[0] : { $or: regexTerms };
+        console.log(
+          "loginGenerateOtp - trying fallback regex query:",
+          JSON.stringify(fallbackQuery),
+        );
+        user = await User.findOne(fallbackQuery);
+      }
+    }
     if (!user) {
       return res
         .status(404)
@@ -152,7 +196,46 @@ export const verifyOtp = async (req, res) => {
     console.log("verifyOtp - request body:", req.body);
     console.log("verifyOtp - constructed query:", JSON.stringify(query));
 
-    const user = await User.findOne(query);
+    let user = await User.findOne(query);
+    if (!user && (eliteIdInput || shareIdInput || emailInput)) {
+      const regexTerms = [];
+      if (eliteIdInput) {
+        regexTerms.push({
+          eliteId: new RegExp(`^${escapeRegex(eliteIdInput)}$`, "i"),
+        });
+        regexTerms.push({
+          elite_id: new RegExp(`^${escapeRegex(eliteIdInput)}$`, "i"),
+        });
+      }
+      if (shareIdInput) {
+        regexTerms.push({
+          shareId: new RegExp(`^${escapeRegex(shareIdInput)}$`, "i"),
+        });
+        regexTerms.push({
+          share_id: new RegExp(`^${escapeRegex(shareIdInput)}$`, "i"),
+        });
+        regexTerms.push({
+          studentId: new RegExp(`^${escapeRegex(shareIdInput)}$`, "i"),
+        });
+      }
+      if (emailInput) {
+        regexTerms.push({
+          email: new RegExp(`^${escapeRegex(emailInput)}$`, "i"),
+        });
+        regexTerms.push({
+          emailAddress: new RegExp(`^${escapeRegex(emailInput)}$`, "i"),
+        });
+      }
+      if (regexTerms.length > 0) {
+        const fallbackQuery =
+          regexTerms.length === 1 ? regexTerms[0] : { $or: regexTerms };
+        console.log(
+          "verifyOtp - trying fallback regex query:",
+          JSON.stringify(fallbackQuery),
+        );
+        user = await User.findOne(fallbackQuery);
+      }
+    }
     if (!user) {
       return res
         .status(404)
@@ -188,6 +271,122 @@ export const verifyOtp = async (req, res) => {
       .json({ success: true, message: "OTP verified", token });
   } catch (error) {
     console.error("Error in verifyOtp:", error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// POST /api/user/auth/resend
+// Body: { eliteId? shareId? email? }
+// Regenerates and stores a new OTP for the given identifier and returns it
+export const resendOtp = async (req, res) => {
+  try {
+    const { eliteId, shareId, email } = readIdentifiers(req.body || {});
+
+    const emailInput = email ? email.toString().toLowerCase().trim() : null;
+    const eliteIdInput = eliteId ? eliteId.toString().trim() : null;
+    const shareIdInput = shareId ? shareId.toString().trim() : null;
+
+    if (!eliteIdInput && !shareIdInput && !emailInput) {
+      return res.status(400).json({
+        success: false,
+        message: "Provide identifier (eliteId/shareId/email) to resend OTP",
+      });
+    }
+
+    // Build flexible $or query for common student fields
+    const orTerms = [];
+    if (eliteIdInput) {
+      orTerms.push(
+        { eliteId: eliteIdInput },
+        { elite_id: eliteIdInput },
+        { eliteid: eliteIdInput },
+      );
+    }
+    if (shareIdInput) {
+      orTerms.push(
+        { shareId: shareIdInput },
+        { share_id: shareIdInput },
+        { shareid: shareIdInput },
+        { studentId: shareIdInput },
+      );
+    }
+    if (emailInput) {
+      orTerms.push(
+        { email: emailInput },
+        { emailAddress: emailInput },
+        { email_address: emailInput },
+      );
+    }
+
+    let query;
+    if (orTerms.length === 1) query = orTerms[0];
+    else if (orTerms.length > 1) query = { $or: orTerms };
+    else query = {};
+
+    console.log("resendOtp - request body:", req.body);
+    console.log("resendOtp - constructed query:", JSON.stringify(query));
+
+    let user = await User.findOne(query);
+    if (!user && (eliteIdInput || shareIdInput || emailInput)) {
+      const regexTerms = [];
+      if (eliteIdInput) {
+        regexTerms.push({
+          eliteId: new RegExp(`^${escapeRegex(eliteIdInput)}$`, "i"),
+        });
+        regexTerms.push({
+          elite_id: new RegExp(`^${escapeRegex(eliteIdInput)}$`, "i"),
+        });
+      }
+      if (shareIdInput) {
+        regexTerms.push({
+          shareId: new RegExp(`^${escapeRegex(shareIdInput)}$`, "i"),
+        });
+        regexTerms.push({
+          share_id: new RegExp(`^${escapeRegex(shareIdInput)}$`, "i"),
+        });
+        regexTerms.push({
+          studentId: new RegExp(`^${escapeRegex(shareIdInput)}$`, "i"),
+        });
+      }
+      if (emailInput) {
+        regexTerms.push({
+          email: new RegExp(`^${escapeRegex(emailInput)}$`, "i"),
+        });
+        regexTerms.push({
+          emailAddress: new RegExp(`^${escapeRegex(emailInput)}$`, "i"),
+        });
+      }
+      if (regexTerms.length > 0) {
+        const fallbackQuery =
+          regexTerms.length === 1 ? regexTerms[0] : { $or: regexTerms };
+        console.log(
+          "resendOtp - trying fallback regex query:",
+          JSON.stringify(fallbackQuery),
+        );
+        user = await User.findOne(fallbackQuery);
+      }
+    }
+    if (!user)
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+
+    // Generate new OTP and expiry
+    const otp = generateOtp();
+    const expiryTs = otpExpiry();
+
+    user.otp = otp;
+    user.otpExpiry = new Date(expiryTs);
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "OTP resent",
+      otp,
+      otpExpiry: user.otpExpiry,
+    });
+  } catch (error) {
+    console.error("Error in resendOtp:", error);
     return res.status(500).json({ success: false, message: error.message });
   }
 };
