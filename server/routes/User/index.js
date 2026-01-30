@@ -14,6 +14,10 @@ import {
   updateSessionTimeout,
   submitContactMessageUser,
 } from "../../controllers/User/index.js";
+import {
+  getStudentTutorials,
+  getStudentTutorialById,
+} from "../../controllers/StudentTutorial/index.js";
 
 const router = express.Router();
 
@@ -23,6 +27,10 @@ router.get("/lockedPublishedEbooks", getLockedPublishedEbooksPublic);
 router.get("/lockedEbooks", getLockedEbooksPublic);
 // Public route to get single eBook details by ID
 router.get("/publishedEbook/:id", getPublishedEbookByIdPublic);
+
+// Student tutorials (public)
+router.get("/tutorials", getStudentTutorials);
+router.get("/tutorials/:id", getStudentTutorialById);
 
 // User auth routes (OTP based)
 router.post("/auth/login", loginGenerateOtp); // provide eliteId/shareId/email + password => returns otp
