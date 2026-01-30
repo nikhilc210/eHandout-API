@@ -12,6 +12,7 @@ import {
   getProfile,
   getSessionTimeout,
   updateSessionTimeout,
+  submitContactMessageUser,
 } from "../../controllers/User/index.js";
 
 const router = express.Router();
@@ -32,5 +33,7 @@ router.get("/auth/me", verifyToken, getProfile);
 // Session timeout (website-only) - get and update
 router.get("/auth/me/session-timeout", verifyToken, getSessionTimeout);
 router.put("/auth/me/session-timeout", verifyToken, updateSessionTimeout);
+// Contact eHandout (user -> eHandout)
+router.post("/auth/contact", verifyToken, submitContactMessageUser);
 
 export default router;

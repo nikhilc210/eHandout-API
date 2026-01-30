@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import { User } from "../../models/User/index.js";
+import UserContact from "../../models/Contact/index.js";
 import { generateOtp, otpExpiry, generateToken } from "../../utils/index.js";
 
 // Helper to read multiple possible identifier keys
@@ -418,6 +419,94 @@ export const getProfile = async (req, res) => {
   }
 };
 
+// POST /api/user/auth/contact
+// Protected: submit contact message from logged-in user to eHandout
+export const submitContactMessageUser = async (req, res) => {
+  try {
+    const decoded = req.vendor;
+    if (!decoded || !decoded.id)
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+
+    const { messageCategory, message } = req.body || {};
+
+    // Basic validation
+    if (!messageCategory || !String(messageCategory).trim()) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Please select a message category." });
+    }
+    if (!message || !String(message).trim()) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Please enter your message." });
+    }
+    if (message.length > 1000) {
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "Message cannot exceed 1000 characters.",
+        });
+    }
+
+    // Find user to get email / name
+    const user = await User.findById(decoded.id);
+    if (!user)
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+
+    // If account suspended/blocked, reject
+    if (user.accountStatus === "Suspended") {
+      return res
+        .status(403)
+        .json({
+          success: false,
+          message: "Your account is suspended. Please contact support.",
+        });
+    }
+
+    const email = user.email || user.emailAddress || null;
+    let fullName = null;
+    // try common fields for full name
+    if (user.fullName) fullName = user.fullName;
+    else if (user.academicAccount && user.academicAccount.fullName)
+      fullName = user.academicAccount.fullName;
+
+    const contact = new UserContact({
+      userId: user._id.toString(),
+      email: email,
+      fullName: fullName,
+      messageCategory: String(messageCategory).trim(),
+      message: String(message).trim(),
+      status: "Pending",
+    });
+
+    await contact.save();
+
+    return res.status(201).json({
+      success: true,
+      message:
+        "Thank you for reaching out to The eHandout Team. We will endeavor to respond promptly to your inquiry.",
+      data: {
+        id: contact._id,
+        messageCategory: contact.messageCategory,
+        message: contact.message,
+        status: contact.status,
+        createdAt: contact.createdAt,
+      },
+    });
+  } catch (error) {
+    console.error("Error submitting user contact message:", error);
+    return res
+      .status(500)
+      .json({
+        success: false,
+        message: "Internal server error: " + error.message,
+      });
+  }
+};
+
 // GET /api/user/auth/me/session-timeout
 // Protected: returns the user's session inactive timeout (minutes)
 export const getSessionTimeout = async (req, res) => {
@@ -468,12 +557,10 @@ export const updateSessionTimeout = async (req, res) => {
 
     const timeoutNum = Number(sessionInactiveTimeout);
     if (Number.isNaN(timeoutNum) || timeoutNum <= 0) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "sessionInactiveTimeout must be a positive number (minutes)",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "sessionInactiveTimeout must be a positive number (minutes)",
+      });
     }
 
     const user = await User.findById(decoded.id);
