@@ -417,3 +417,81 @@ export const getProfile = async (req, res) => {
     return res.status(500).json({ success: false, message: error.message });
   }
 };
+
+// GET /api/user/auth/me/session-timeout
+// Protected: returns the user's session inactive timeout (minutes)
+export const getSessionTimeout = async (req, res) => {
+  try {
+    const decoded = req.vendor;
+    if (!decoded || !decoded.id)
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+
+    const user = await User.findById(decoded.id).select(
+      "sessionInactiveTimeout",
+    );
+    if (!user)
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+
+    return res.status(200).json({
+      success: true,
+      data: { sessionInactiveTimeout: user.sessionInactiveTimeout },
+    });
+  } catch (error) {
+    console.error("Error in getSessionTimeout:", error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// PUT /api/user/auth/me/session-timeout
+// Body: { sessionInactiveTimeout: Number }
+// Protected: updates user's session inactive timeout (minutes) - website only
+export const updateSessionTimeout = async (req, res) => {
+  try {
+    const decoded = req.vendor;
+    if (!decoded || !decoded.id)
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+
+    const { sessionInactiveTimeout } = req.body || {};
+
+    if (
+      sessionInactiveTimeout === undefined ||
+      sessionInactiveTimeout === null
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Please provide sessionInactiveTimeout (minutes) in request body",
+      });
+    }
+
+    const timeoutNum = Number(sessionInactiveTimeout);
+    if (Number.isNaN(timeoutNum) || timeoutNum <= 0) {
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "sessionInactiveTimeout must be a positive number (minutes)",
+        });
+    }
+
+    const user = await User.findById(decoded.id);
+    if (!user)
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+
+    user.sessionInactiveTimeout = timeoutNum;
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Your inactive timeout setting was saved successfully",
+      data: { sessionInactiveTimeout: user.sessionInactiveTimeout },
+    });
+  } catch (error) {
+    console.error("Error in updateSessionTimeout:", error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};

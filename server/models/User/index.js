@@ -11,6 +11,8 @@ const userSchema = new mongoose.Schema(
     emailVerified: { type: Boolean, default: false },
     otp: { type: Number },
     otpExpiry: { type: Date },
+    // Session inactive timeout (in minutes) for website sessions. Default 30 mins.
+    sessionInactiveTimeout: { type: Number, default: 30 },
     accountStatus: {
       type: String,
       enum: ["Pending", "Active", "Suspended"],

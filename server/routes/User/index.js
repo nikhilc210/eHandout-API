@@ -10,6 +10,8 @@ import {
   verifyOtp,
   resendOtp,
   getProfile,
+  getSessionTimeout,
+  updateSessionTimeout,
 } from "../../controllers/User/index.js";
 
 const router = express.Router();
@@ -27,5 +29,8 @@ router.post("/auth/verify", verifyOtp); // provide eliteId/shareId/email + otp =
 router.post("/auth/resend", resendOtp); // provide eliteId/shareId/email => returns new otp
 // Protected route to fetch logged-in user profile
 router.get("/auth/me", verifyToken, getProfile);
+// Session timeout (website-only) - get and update
+router.get("/auth/me/session-timeout", verifyToken, getSessionTimeout);
+router.put("/auth/me/session-timeout", verifyToken, updateSessionTimeout);
 
 export default router;
