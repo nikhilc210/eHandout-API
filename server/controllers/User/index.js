@@ -2,6 +2,8 @@ import bcrypt from "bcryptjs";
 import { User } from "../../models/User/index.js";
 import UserContact from "../../models/Contact/index.js";
 import { generateOtp, otpExpiry, generateToken } from "../../utils/index.js";
+import jwt from "jsonwebtoken";
+import { InvalidatedToken } from "../../models/Store/Vendor/index.js";
 
 // Helper to read multiple possible identifier keys
 const readIdentifiers = (body) => {
@@ -441,12 +443,10 @@ export const submitContactMessageUser = async (req, res) => {
         .json({ success: false, message: "Please enter your message." });
     }
     if (message.length > 1000) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Message cannot exceed 1000 characters.",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "Message cannot exceed 1000 characters.",
+      });
     }
 
     // Find user to get email / name
@@ -458,12 +458,10 @@ export const submitContactMessageUser = async (req, res) => {
 
     // If account suspended/blocked, reject
     if (user.accountStatus === "Suspended") {
-      return res
-        .status(403)
-        .json({
-          success: false,
-          message: "Your account is suspended. Please contact support.",
-        });
+      return res.status(403).json({
+        success: false,
+        message: "Your account is suspended. Please contact support.",
+      });
     }
 
     const email = user.email || user.emailAddress || null;
@@ -498,6 +496,45 @@ export const submitContactMessageUser = async (req, res) => {
     });
   } catch (error) {
     console.error("Error submitting user contact message:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error: " + error.message,
+    });
+  }
+};
+
+// POST /api/user/auth/logout
+// Protected: invalidates current JWT by inserting into invalidatedtokens collection
+export const logoutUser = async (req, res) => {
+  try {
+    const authHeader = req.headers["authorization"];
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res
+        .status(401)
+        .json({ success: false, message: "Access denied. No token provided." });
+    }
+
+    const token = authHeader.split(" ")[1];
+
+    // Decode token to get expiry
+    const decoded = jwt.decode(token);
+    let expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // default 7 days
+    if (decoded && decoded.exp) {
+      expiresAt = new Date(decoded.exp * 1000);
+    }
+
+    // Upsert into invalidated tokens collection
+    await InvalidatedToken.findOneAndUpdate(
+      { token },
+      { $set: { expiresAt } },
+      { upsert: true, new: true },
+    );
+
+    return res
+      .status(200)
+      .json({ success: true, message: "Logged out successfully." });
+  } catch (error) {
+    console.error("Error during logoutUser:", error);
     return res
       .status(500)
       .json({

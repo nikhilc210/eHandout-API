@@ -13,6 +13,7 @@ import {
   getSessionTimeout,
   updateSessionTimeout,
   submitContactMessageUser,
+  logoutUser,
 } from "../../controllers/User/index.js";
 import {
   getStudentTutorials,
@@ -43,5 +44,7 @@ router.get("/auth/me/session-timeout", verifyToken, getSessionTimeout);
 router.put("/auth/me/session-timeout", verifyToken, updateSessionTimeout);
 // Contact eHandout (user -> eHandout)
 router.post("/auth/contact", verifyToken, submitContactMessageUser);
+// Logout user (invalidate current JWT)
+router.post("/auth/logout", verifyToken, logoutUser);
 
 export default router;
