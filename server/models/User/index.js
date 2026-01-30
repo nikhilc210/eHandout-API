@@ -21,4 +21,5 @@ const userSchema = new mongoose.Schema(
 );
 
 // Export named model to match project style
-export const User = mongoose.model("User", userSchema, "users");
+// Use the existing MongoDB collection name `student` (project uses 'student' collection)
+export const User = mongoose.model("User", userSchema, "student");
